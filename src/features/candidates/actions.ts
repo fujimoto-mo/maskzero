@@ -4,6 +4,11 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { normalizeChannel } from "@/features/intake/channels";
+import {
+  afterSchedulingChange,
+  closeOpenScheduling,
+  issueInvitation,
+} from "@/features/interviews/server";
 import { isPlausiblePhone } from "@/lib/contact";
 import { recordAudit } from "@/server/audit";
 import { isAdmin, type MemberCtx, requireEditor, requireMember } from "@/server/auth/session";
@@ -218,7 +223,7 @@ export async function changeStageAction(
   z.uuid().parse(applicationId);
   const note = reason?.trim().slice(0, 200) || null;
 
-  const ok = await withRls(ctx, async (tx) => {
+  const result = await withRls(ctx, async (tx) => {
     const [app] = await tx
       .select({
         stage: applications.stage,
@@ -233,7 +238,7 @@ export async function changeStageAction(
           eq(applications.clientId, ctx.clientId),
         ),
       );
-    if (!app || !allowedChanges(app.stage, app.outcome).includes(change)) return false;
+    if (!app || !allowedChanges(app.stage, app.outcome).includes(change)) return null;
 
     const set =
       change === "next_round"
@@ -263,10 +268,33 @@ export async function changeStageAction(
       type: "application.stage_changed",
       payload: { change, from: app.stage, fromOutcome: app.outcome },
     });
-    return true;
+    // The next round gets its own invitation; leaving the process closes what was open.
+    const invitationId =
+      change === "next_round"
+        ? await issueInvitation(tx, {
+            orgId: ctx.orgId,
+            clientId: ctx.clientId,
+            applicationId,
+            round: app.round + 1,
+            actor: "staff",
+            actorId: ctx.userId,
+          })
+        : null;
+    const canceledInterviews =
+      change === "withdrawn" || change === "rejected" || change === "hired"
+        ? await closeOpenScheduling(tx, applicationId)
+        : [];
+    return { invitationId, canceledInterviews };
   });
-  if (ok) revalidatePath(path(ctx), "layout");
-  return { ok };
+  if (!result) return { ok: false };
+  await afterSchedulingChange({
+    orgId: ctx.orgId,
+    invitationId: result.invitationId,
+    canceledInterviews: result.canceledInterviews,
+    rejectedApplications: change === "rejected" ? [applicationId] : [],
+  });
+  revalidatePath(path(ctx), "layout");
+  return { ok: true };
 }
 
 /**

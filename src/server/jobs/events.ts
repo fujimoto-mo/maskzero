@@ -26,3 +26,28 @@ export const criteriaChanged = eventType("job/criteria-changed", {
 export const retentionPurgeRequested = eventType("retention/purge-requested", {
   schema: z.object({}),
 });
+
+/** An interview invitation was created: email it, then follow up while it isn't booked (docs/02 M7). */
+export const invitationCreated = eventType("invitation/created", {
+  schema: z.object({ invitationId: z.uuid(), orgId: z.uuid() }),
+});
+
+/** Staff asked to email the invitation again. `requestedAt` keeps each resend distinct. */
+export const invitationResend = eventType("invitation/resend", {
+  schema: z.object({ invitationId: z.uuid(), orgId: z.uuid(), requestedAt: z.string() }),
+});
+
+/** An interview was booked: confirmation with .ics now, the day-before reminder later. */
+export const interviewScheduled = eventType("interview/scheduled", {
+  schema: z.object({ interviewId: z.uuid(), orgId: z.uuid() }),
+});
+
+/** An interview moved or was canceled: cancels its pending reminder (cancelOn). */
+export const interviewChanged = eventType("interview/changed", {
+  schema: z.object({ interviewId: z.uuid(), orgId: z.uuid() }),
+});
+
+/** A person confirmed a rejection: the notice goes out the next morning (docs/02 M9-1). */
+export const applicationRejected = eventType("application/rejected", {
+  schema: z.object({ applicationId: z.uuid(), orgId: z.uuid() }),
+});

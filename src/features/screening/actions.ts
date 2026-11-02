@@ -15,6 +15,11 @@ import { sendEventBestEffort } from "@/server/jobs/send";
 import { createSignedDownload, createSignedUpload } from "@/server/storage";
 import type { Verdict } from "./domain";
 import { getScreeningDetail, type ScreeningDetail } from "./queries";
+import {
+  afterSchedulingChange,
+  closeOpenScheduling,
+  issueInvitation,
+} from "@/features/interviews/server";
 import { stateForVerdict } from "./state";
 
 const path = (ctx: MemberCtx) => `/app/${ctx.orgSlug}/${ctx.clientSlug}`;
@@ -54,7 +59,11 @@ export async function decideAction(
 
   const result = await withRls(ctx, async (tx) => {
     const [app] = await tx
-      .select({ stage: applications.stage, outcome: applications.outcome })
+      .select({
+        stage: applications.stage,
+        outcome: applications.outcome,
+        round: applications.currentRound,
+      })
       .from(applications)
       .where(
         and(
@@ -63,9 +72,11 @@ export async function decideAction(
           eq(applications.clientId, ctx.clientId),
         ),
       );
-    if (!app) return "notFound" as const;
+    if (!app) return { status: "notFound" as const };
     const open = app.outcome === "active" || app.outcome === "rejected";
-    if (!open || !["applied", "screening", "booking"].includes(app.stage)) return "locked" as const;
+    if (!open || !["applied", "screening", "booking"].includes(app.stage)) {
+      return { status: "locked" as const };
+    }
 
     let verdict: Verdict;
     if (decision === "revert") {
@@ -75,7 +86,7 @@ export async function decideAction(
         .where(eq(screeningRuns.applicationId, applicationId))
         .orderBy(desc(screeningRuns.createdAt))
         .limit(1);
-      if (!run) return "noRun" as const;
+      if (!run) return { status: "noRun" as const };
       verdict = run.verdict;
     } else {
       verdict = MANUAL[decision];
@@ -103,9 +114,33 @@ export async function decideAction(
       type: "screening.decided",
       payload: { verdict, decision },
     });
-    return "ok" as const;
+    // A pass invites the candidate to book; anything else closes what was open (docs/02 M7).
+    const passed = verdict === "pass" || verdict === "manual_pass";
+    const invitationId = passed
+      ? await issueInvitation(tx, {
+          orgId: ctx.orgId,
+          clientId: ctx.clientId,
+          applicationId,
+          round: app.round,
+          actor: "staff",
+          actorId: ctx.userId,
+        })
+      : null;
+    const canceledInterviews = passed ? [] : await closeOpenScheduling(tx, applicationId);
+    return {
+      status: "ok" as const,
+      invitationId,
+      canceledInterviews,
+      rejected: verdict === "manual_fail" || verdict === "fail",
+    };
   });
-  if (result !== "ok") return { ok: false, error: result };
+  if (result.status !== "ok") return { ok: false, error: result.status };
+  await afterSchedulingChange({
+    orgId: ctx.orgId,
+    invitationId: result.invitationId,
+    canceledInterviews: result.canceledInterviews,
+    rejectedApplications: result.rejected ? [applicationId] : [],
+  });
   revalidatePath(path(ctx), "layout");
   return { ok: true };
 }
@@ -134,7 +169,7 @@ export async function confirmRejectionsAction(
         ),
       )
       .returning({ id: applications.id });
-    if (rows.length === 0) return 0;
+    if (rows.length === 0) return [];
     await tx.insert(screeningDecisions).values(
       rows.map((r) => ({
         orgId: ctx.orgId,
@@ -156,10 +191,11 @@ export async function confirmRejectionsAction(
         payload: { verdict: "fail", decision: "confirm" },
       });
     }
-    return rows.length;
+    return rows.map((r) => r.id);
   });
+  await afterSchedulingChange({ orgId: ctx.orgId, rejectedApplications: confirmed });
   revalidatePath(path(ctx), "layout");
-  return { confirmed };
+  return { confirmed: confirmed.length };
 }
 
 /** Reads an application's documents again and re-screens it (docs/02 M4-12). */

@@ -58,6 +58,12 @@ Sign in with the demo login, publish a job, issue an entry URL and open it on a 
 With `AI_FAKE=1`, PDFs with a text layer are read as text, photos come back unreadable (so they land
 in "needs review"), and specialist conditions match by keyword. Nothing is sent to Anthropic.
 
+To try booking, pass an applicant in 書類選考, then copy their booking link from 面接予定者 (the
+row's menu). Invitations, follow-ups, confirmations and reminders are Inngest functions, so keep
+`pnpm inngest:dev` running; automatic emails wait out quiet hours (21:00–08:00 Japan time), and
+the Inngest dev UI at http://localhost:8288 shows each run's sleeps. Without `RESEND_API_KEY`,
+emails are only recorded in 設定 → 送信履歴 as 記録のみ.
+
 ## Before you push
 
 ```bash

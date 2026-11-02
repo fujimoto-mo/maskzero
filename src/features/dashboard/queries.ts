@@ -6,7 +6,23 @@ import { withRls } from "@/server/db/rls";
 // Dashboard numbers (docs/02 M6-1, M6-2). Dates are counted in Japan time.
 
 export type DashboardData = {
-  counters: { toReview: number; toConfirm: number; toInvite: number; waitingDocuments: number };
+  counters: {
+    toReview: number;
+    toConfirm: number;
+    toInvite: number;
+    waitingDocuments: number;
+    /** Booking requests awaiting manual confirmation or a new slot (docs/02 M6-3). */
+    pendingRequests: number;
+  };
+  /** Today's interviews in Japan time, earliest first. */
+  today: {
+    applicationId: string;
+    name: string;
+    startsAt: string;
+    endsAt: string;
+    round: number;
+    meetingUrl: string | null;
+  }[];
   /** Applications per job board, this month and last month. */
   boards: { channel: string; thisMonth: number; lastMonth: number }[];
   /** The last 12 months, oldest first, with the same month a year earlier. */
@@ -37,22 +53,24 @@ export async function getDashboard(ctx: MemberCtx, now: Date): Promise<Dashboard
   const localNow = sql`(${now.toISOString()}::timestamptz at time zone ${TZ})`;
   const monthStart = sql`(date_trunc('month', ${localNow}) at time zone ${TZ})`;
 
-  const [[counters], boards, months, [funnel], days] = await withRls(ctx, (tx) =>
-    Promise.all([
-      tx.execute<{
-        to_review: number;
-        to_confirm: number;
-        to_invite: number;
-        waiting_documents: number;
-      }>(sql`
+  const [[counters], boards, months, [funnel], days, [requests], todayRows] = await withRls(
+    ctx,
+    (tx) =>
+      Promise.all([
+        tx.execute<{
+          to_review: number;
+          to_confirm: number;
+          to_invite: number;
+          waiting_documents: number;
+        }>(sql`
         select
           count(*) filter (where verdict in ('check', 'manual_check') and stage in ('applied', 'screening'))::int as to_review,
           count(*) filter (where verdict = 'fail_pending')::int as to_confirm,
-          count(*) filter (where stage = 'booking')::int as to_invite,
+          count(*) filter (where stage = 'booking' and waiting_on = 'candidate')::int as to_invite,
           count(*) filter (where waiting_on = 'candidate' and stage = 'applied')::int as waiting_documents
         from applications a
         where ${scope} and a.outcome = 'active'`),
-      tx.execute<{ channel: string; this_month: number; last_month: number }>(sql`
+        tx.execute<{ channel: string; this_month: number; last_month: number }>(sql`
         select coalesce(a.channel, a.source::text) as channel,
           count(*) filter (where a.applied_at >= ${monthStart})::int as this_month,
           count(*) filter (where a.applied_at < ${monthStart})::int as last_month
@@ -62,19 +80,19 @@ export async function getDashboard(ctx: MemberCtx, now: Date): Promise<Dashboard
         group by 1
         order by 2 desc, 3 desc
         limit 12`),
-      tx.execute<{ month: string; count: number }>(sql`
+        tx.execute<{ month: string; count: number }>(sql`
         select to_char(a.applied_at at time zone ${TZ}, 'YYYY-MM') as month, count(*)::int as count
         from applications a
         where ${scope}
           and a.applied_at >= (date_trunc('month', ${localNow}) - interval '23 months') at time zone ${TZ}
         group by 1`),
-      tx.execute<{
-        applied: number;
-        passed: number;
-        interview: number;
-        offer: number;
-        hired: number;
-      }>(sql`
+        tx.execute<{
+          applied: number;
+          passed: number;
+          interview: number;
+          offer: number;
+          hired: number;
+        }>(sql`
         select
           count(*)::int as applied,
           count(*) filter (where a.stage not in ('applied', 'screening') or a.verdict in ('pass', 'manual_pass'))::int as passed,
@@ -83,13 +101,36 @@ export async function getDashboard(ctx: MemberCtx, now: Date): Promise<Dashboard
           count(*) filter (where a.stage = 'hired' or a.outcome = 'hired')::int as hired
         from applications a
         where ${scope} and a.applied_at >= ${now.toISOString()}::timestamptz - interval '12 months'`),
-      tx.execute<{ day: string; count: number }>(sql`
+        tx.execute<{ day: string; count: number }>(sql`
         select to_char(a.applied_at at time zone ${TZ}, 'YYYY-MM-DD') as day, count(*)::int as count
         from applications a
         where ${scope}
           and a.applied_at >= (date_trunc('day', ${localNow}) - interval '13 days') at time zone ${TZ}
         group by 1`),
-    ]),
+        tx.execute<{ pending: number }>(sql`
+        select count(*)::int as pending
+        from booking_requests r
+        join interview_invitations i on i.id = r.invitation_id
+        join applications a on a.id = i.application_id
+        where ${scope} and a.outcome = 'active' and r.status in ('pending', 'unmatched')
+          and i.status in ('sent', 'opened')`),
+        tx.execute<{
+          application_id: string;
+          name: string;
+          starts_at: string;
+          ends_at: string;
+          round: number;
+          meeting_url: string | null;
+        }>(sql`
+        select a.id as application_id, c.name, iv.starts_at, iv.ends_at, iv.round, iv.meeting_url
+        from interviews iv
+        join applications a on a.id = iv.application_id
+        join candidates c on c.id = a.candidate_id
+        where ${scope} and iv.status = 'scheduled'
+          and iv.starts_at >= date_trunc('day', ${localNow}) at time zone ${TZ}
+          and iv.starts_at < (date_trunc('day', ${localNow}) + interval '1 day') at time zone ${TZ}
+        order by iv.starts_at`),
+      ]),
   );
 
   const today = japanCalendar(now);
@@ -106,7 +147,16 @@ export async function getDashboard(ctx: MemberCtx, now: Date): Promise<Dashboard
       toConfirm: counters?.to_confirm ?? 0,
       toInvite: counters?.to_invite ?? 0,
       waitingDocuments: counters?.waiting_documents ?? 0,
+      pendingRequests: requests?.pending ?? 0,
     },
+    today: todayRows.map((i) => ({
+      applicationId: i.application_id,
+      name: i.name,
+      startsAt: new Date(i.starts_at).toISOString(),
+      endsAt: new Date(i.ends_at).toISOString(),
+      round: i.round,
+      meetingUrl: i.meeting_url,
+    })),
     boards: boards.map((b) => ({
       channel: b.channel,
       thisMonth: b.this_month,

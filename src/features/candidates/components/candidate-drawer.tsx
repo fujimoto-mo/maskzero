@@ -210,6 +210,19 @@ function TimelineEntry({ item }: { item: TimelineItem }) {
     "screening_decided",
     "screening_failed",
     "application_stage_changed",
+    "invitation_sent",
+    "invitation_resent",
+    "invitation_opened",
+    "booking_requested",
+    "booking_unmatched",
+    "interview_scheduled",
+    "interview_rescheduled",
+    "interview_canceled",
+    "interview_done",
+    "interview_no_show",
+    "message_sent",
+    "message_dry_run",
+    "message_failed",
   ];
   const verdict =
     typeof item.payload.verdict === "string" ? verdicts(item.payload.verdict as Verdict) : "";
@@ -218,7 +231,11 @@ function TimelineEntry({ item }: { item: TimelineItem }) {
       ? t(`drawer.changes.${item.payload.change as StageChange}`)
       : "";
   const text = known.includes(key)
-    ? t(`events.${key as "application_created"}`, { verdict, change })
+    ? t(`events.${key as "application_created"}`, {
+        verdict,
+        change,
+        round: String(item.payload.round ?? ""),
+      })
     : t("events.other", { type: item.type });
 
   return (

@@ -25,6 +25,8 @@ import {
   listDataRequests,
   listMembers,
 } from "@/features/settings/queries";
+import { EmailSettings } from "@/features/messaging/components/email-settings";
+import { getMessageSettings, listMessages } from "@/features/messaging/queries";
 import { cn } from "@/lib/utils";
 import { isAdmin, requireMember } from "@/server/auth/session";
 
@@ -32,8 +34,8 @@ export const instant = false; // reads the session per request (CLAUDE.md, "Cach
 
 export const metadata: Metadata = { title: "設定" };
 
-const ADMIN_TABS = ["company", "members", "requests", "audit", "usage"] as const;
-type Tab = (typeof ADMIN_TABS)[number] | "profile";
+const ADMIN_TABS = ["company", "members", "email", "requests", "audit", "usage"] as const;
+type Tab = (typeof ADMIN_TABS)[number] | "log" | "profile";
 
 const timeFormat = new Intl.DateTimeFormat("ja-JP", {
   dateStyle: "short",
@@ -49,7 +51,7 @@ export default async function SettingsPage({
   const [{ org, client }, query] = await Promise.all([params, searchParams]);
   const ctx = await requireMember(org, client);
   const admin = isAdmin(ctx);
-  const tabs: Tab[] = admin ? [...ADMIN_TABS, "profile"] : ["profile"];
+  const tabs: Tab[] = admin ? [...ADMIN_TABS, "log", "profile"] : ["log", "profile"];
   const tab = tabs.find((t) => t === query.tab) ?? tabs[0]!;
   const t = await getTranslations("Settings");
   const base = `/app/${ctx.orgSlug}/${ctx.clientSlug}/settings`;
@@ -85,6 +87,10 @@ export default async function SettingsPage({
       ) : null}
       {tab === "audit" ? <AuditLog rows={await listAuditLogs(ctx)} /> : null}
       {tab === "usage" ? <Usage rows={await getAiUsage(ctx)} /> : null}
+      {tab === "email" ? (
+        <EmailSettings target={target} {...await getMessageSettings(ctx)} />
+      ) : null}
+      {tab === "log" ? <MessageLog rows={await listMessages(ctx)} /> : null}
       {tab === "profile" ? <ProfileForm target={target} profile={await getProfile(ctx)} /> : null}
     </div>
   );
@@ -201,6 +207,53 @@ async function Usage({ rows }: { rows: Awaited<ReturnType<typeof getAiUsage>> })
                 </TableCell>
               </TableRow>
             </TableFooter>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+async function MessageLog({ rows }: { rows: Awaited<ReturnType<typeof listMessages>> }) {
+  const t = await getTranslations("Settings.log");
+  const triggers = await getTranslations("Settings.email.triggers");
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t("title")}</CardTitle>
+        <CardDescription>{t("description")}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {rows.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{t("empty")}</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("when")}</TableHead>
+                <TableHead>{t("to")}</TableHead>
+                <TableHead>{t("what")}</TableHead>
+                <TableHead>{t("status")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell className="text-sm whitespace-nowrap">
+                    {timeFormat.format(new Date(row.at))}
+                  </TableCell>
+                  <TableCell className="text-sm">{row.candidateName}</TableCell>
+                  <TableCell className="text-sm">
+                    <p>{row.subject}</p>
+                    <p className="text-xs text-muted-foreground">{triggers(row.trigger)}</p>
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {t(`statuses.${row.status}`)}
+                    {row.error ? <p className="text-xs text-destructive">{row.error}</p> : null}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
           </Table>
         )}
       </CardContent>

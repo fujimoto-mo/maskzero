@@ -78,7 +78,9 @@
       "entryUrls": "応募受付URL",
       "screening": "書類選考",
       "candidates": "応募者",
-      "settings": "設定"
+      "settings": "設定",
+      "scheduling": "日程調整",
+      "interviews": "面接予定者"
     },
     "dashboard": {
       "title": "ダッシュボード",
@@ -95,8 +97,9 @@
       "counters": {
         "toReview": "要確認の書類選考",
         "toConfirm": "確定待ちの不合格",
-        "toInvite": "面接の案内待ち",
-        "waitingDocuments": "書類の提出待ち"
+        "toInvite": "日程の回答待ち",
+        "waitingDocuments": "書類の提出待ち",
+        "pendingRequests": "日程の確定待ち"
       },
       "boards": "今月の媒体別の応募",
       "lastMonth": "前月 {count}",
@@ -127,7 +130,11 @@
         "step": "段階",
         "rate": "通過率",
         "date": "日付"
-      }
+      },
+      "todayTitle": "今日の面接",
+      "todayEmpty": "今日の面接はありません。",
+      "todayRound": "{round}次面接",
+      "join": "会議URL"
     },
     "roles": {
       "owner": "オーナー",
@@ -143,7 +150,11 @@
       "markAllRead": "すべて既読にする",
       "empty": "新しいお知らせはありません。",
       "newApplication": "新しい応募：{name}さん",
-      "needsReview": "確認が必要：{name}さん"
+      "needsReview": "確認が必要：{name}さん",
+      "requested": "日程の希望が届きました：{name}さん",
+      "scheduled": "面接が確定：{name}さん",
+      "unmatched": "日程の調整が必要：{name}さん",
+      "tomorrow": "明日の面接：{name}さん"
     },
     "search": {
       "button": "応募者を検索",
@@ -476,7 +487,25 @@
     "sending": "送信しています…",
     "sent": "書類を受け付けました。",
     "uploadsClosed": "選考が進んだため、このページから書類は追加できません。",
-    "failed": "送信できませんでした。もう一度お試しください。"
+    "failed": "送信できませんでした。もう一度お試しください。",
+    "interviewTitle": "面接",
+    "interviewAt": "日時",
+    "method": "方法",
+    "place": "場所",
+    "join": "会議に参加する",
+    "book": "面接の日程を選ぶ",
+    "bookLead": "面接のご案内をお送りしています。ご都合のよい日時をお選びください。",
+    "awaitingConfirmation": "ご希望の日時を担当者が確認しています。確定したらメールでお知らせします。",
+    "reschedule": "日程を変更する",
+    "changeUntil": "{date}まで、ここから変更できます。",
+    "tooLate": "変更の期限を過ぎたため、ここからは変更できません。担当者にご連絡ください。",
+    "withdraw": "選考を辞退する",
+    "withdrawTitle": "選考を辞退しますか？",
+    "withdrawBody": "辞退すると、予定している面接も取り消されます。元に戻すことはできません。",
+    "withdrawConfirm": "辞退する",
+    "cancel": "キャンセル",
+    "withdrawn": "辞退を受け付けました。",
+    "changeFailed": "変更できませんでした。担当者にご連絡ください。"
   },
   "Screening": {
     "title": "書類選考",
@@ -745,7 +774,11 @@
       "review_screening": "書類選考の結果を確認する",
       "confirm_rejection": "不合格（確認待ち）を確定するか判断する",
       "invite_interview": "面接の案内を送る",
-      "await_offer_reply": "内定への返事を待つ"
+      "await_offer_reply": "内定への返事を待つ",
+      "await_booking": "応募者が面接の日程を選ぶのを待つ",
+      "decide_after_interview": "面接の結果を判断する",
+      "confirm_booking": "応募者の希望の日時から面接日程を確定する",
+      "arrange_interview": "希望の枠が埋まっていたため、案内を再送して日時を選び直してもらう"
     },
     "add": {
       "button": "応募者を追加",
@@ -832,7 +865,20 @@
       "screening_decided": "担当者の判断：{verdict}",
       "screening_failed": "AIの処理に失敗したため、担当者の確認待ちにしました",
       "application_stage_changed": "選考段階を変更しました（{change}）",
-      "other": "{type}"
+      "other": "{type}",
+      "invitation_sent": "面接の案内を送りました（{round}次）",
+      "invitation_resent": "面接の案内を再送しました",
+      "invitation_opened": "応募者が予約ページを開きました",
+      "booking_requested": "応募者が希望の日時を送りました",
+      "booking_unmatched": "希望の枠が埋まっていたため、担当者の対応待ちです",
+      "interview_scheduled": "面接の日時が確定しました",
+      "interview_rescheduled": "応募者が面接の日程を変更しました",
+      "interview_canceled": "面接が取り消されました",
+      "interview_done": "面接を実施しました",
+      "interview_no_show": "応募者が面接を欠席しました",
+      "message_sent": "メールを送りました",
+      "message_dry_run": "メールを記録しました（送信なし）",
+      "message_failed": "メールを送れませんでした"
     }
   },
   "Settings": {
@@ -843,7 +889,9 @@
       "requests": "開示・削除の依頼",
       "audit": "操作の記録",
       "usage": "AIの利用量",
-      "profile": "プロフィール"
+      "profile": "プロフィール",
+      "email": "メール",
+      "log": "送信履歴"
     },
     "save": "保存する",
     "saved": "保存しました",
@@ -933,7 +981,11 @@
         "data_request_created": "開示・削除の依頼を記録",
         "data_request_closed": "開示・削除の依頼を完了",
         "auth_signed_out_everywhere": "すべての端末からログアウト",
-        "organization_create": "会社を登録"
+        "organization_create": "会社を登録",
+        "settings_template_updated": "メールの文面を変更",
+        "settings_template_reset": "メールの文面を初期に戻した",
+        "settings_test_mode_on": "テストモードをオン",
+        "settings_test_mode_off": "テストモードをオフ"
       }
     },
     "usage": {
@@ -959,7 +1011,64 @@
       "signOutAll": "すべての端末からログアウト",
       "signOutAllHint": "ほかの端末やブラウザに残っているログインも終了します。"
     },
-    "adminOnly": "この項目は、オーナーと管理者だけが変更できます。"
+    "adminOnly": "この項目は、オーナーと管理者だけが変更できます。",
+    "email": {
+      "title": "応募者へのメール",
+      "description": "書類選考の通過や面接の確定などで、応募者に自動で送るメールの文面です。",
+      "testMode": "テストモード",
+      "testModeHint": "オンにすると、メールを実際には送らず、送信履歴に記録だけします。",
+      "quietHours": "21時から翌朝8時までに自動で送るメールは、8時まで待ってから送ります。",
+      "triggers": {
+        "pass": "書類選考の通過と面接のご案内",
+        "follow_up": "日程が未回答のときの再案内（3日後・6日後）",
+        "confirmed": "面接日時の確定（カレンダー登録用ファイル付き）",
+        "reminder": "面接前日のリマインド（前日18時）",
+        "rejection": "不合格のご連絡（確定の翌朝10時）",
+        "next_round": "次の面接のご案内"
+      },
+      "enabled": "このメールを送る",
+      "subject": "件名",
+      "body": "本文",
+      "fields": "使える差し込み項目",
+      "fieldNames": {
+        "name": "応募者名",
+        "company": "会社名",
+        "job": "職種名",
+        "booking_url": "予約ページのURL",
+        "portal_url": "個人ページのURL",
+        "interview_at": "面接日時",
+        "tool": "面接の方法",
+        "meeting_url": "会議のURLまたは場所"
+      },
+      "preview": "プレビュー",
+      "save": "保存する",
+      "saved": "保存しました",
+      "reset": "初期の文面に戻す",
+      "custom": "編集済み",
+      "problems": {
+        "unknownField": "「{field}」という差し込み項目はありません。",
+        "missingField": "このメールには「{field}」が必要です。",
+        "empty": "件名と本文を入力してください。"
+      }
+    },
+    "log": {
+      "title": "送信履歴",
+      "description": "応募者に送ったメールの記録です（直近100件）。",
+      "empty": "まだ送信はありません。",
+      "when": "日時",
+      "to": "宛先",
+      "what": "件名",
+      "status": "状態",
+      "statuses": {
+        "scheduled": "送信待ち",
+        "sent": "送信済み",
+        "delivered": "配信済み",
+        "bounced": "届かず",
+        "failed": "失敗",
+        "canceled": "取り消し",
+        "dry_run": "記録のみ"
+      }
+    }
   },
   "Invite": {
     "title": "{org}への招待",
@@ -972,5 +1081,155 @@
     "invalid": "この招待は無効か、有効期限が切れています。招待した人に、もう一度送ってもらってください。",
     "wrongEmail": "この招待は別のメールアドレス宛てです。招待されたメールアドレスでログインし直してください。",
     "logout": "ログアウト"
+  },
+  "Scheduling": {
+    "title": "日程調整",
+    "description": "面接を受け付ける時間を決めます。応募者は、空いている枠から希望の日時を選びます。",
+    "rules": {
+      "title": "受付のルール",
+      "commonHours": "受付時間（共通）",
+      "weekdays": "曜日ごとの設定",
+      "weekdayMode": {
+        "common": "共通の時間",
+        "custom": "別の時間",
+        "off": "受け付けない"
+      },
+      "slotMinutes": "1次面接の長さ",
+      "laterRoundMinutes": "2次以降の面接の長さ",
+      "bufferMinutes": "面接の間の休憩",
+      "minutes": "分",
+      "excludeWeekends": "土日は受け付けない",
+      "excludeHolidays": "祝日は受け付けない",
+      "windowDays": "何日先まで受け付けるか",
+      "days": "日",
+      "minNoticeHours": "何時間前まで予約できるか",
+      "cancelCutoffHours": "応募者が変更・キャンセルできる期限",
+      "hoursBefore": "時間前まで",
+      "confirmMode": "日程の確定",
+      "auto": "自動で確定する（希望の1番目から、空いている枠で確定）",
+      "manual": "担当者が確認して確定する",
+      "tool": "面接の方法",
+      "url": "オンライン（決まった会議URL）",
+      "onsite": "対面",
+      "meetingUrl": "会議のURL",
+      "meetingUrlHint": "Google Meet、Zoom、Teams などの固定のURL。カレンダー連携は今後対応します。",
+      "address": "面接の場所",
+      "save": "保存する",
+      "saved": "保存しました",
+      "invalid": "入力内容を確認してください。",
+      "weekdayNames": ["日", "月", "火", "水", "木", "金", "土"]
+    },
+    "calendar": {
+      "title": "カレンダー",
+      "description": "日付を選ぶと、その日の枠を1つずつ開けたり閉じたりできます。",
+      "prev": "前の月",
+      "next": "次の月",
+      "open": "空き {count}",
+      "booked": "予約 {count}",
+      "closed": "受付なし",
+      "past": "受付終了",
+      "dayTitle": "{date}の枠",
+      "slotOpen": "受付中",
+      "slotClosed": "受付なし",
+      "slotBooked": "予約済み",
+      "manual": "手動で変更",
+      "toggleHint": "押すと、受付中と受付なしが切り替わります。",
+      "selectDay": "日付を選んでください。"
+    },
+    "concerns": {
+      "title": "応募者の不安への回答",
+      "description": "予約ページで応募者が選べる「気になること」と、会社からの回答です。",
+      "label": "気になること",
+      "labelPlaceholder": "例：服装の指定はありますか",
+      "answer": "回答",
+      "add": "項目を追加",
+      "remove": "削除",
+      "save": "保存する",
+      "saved": "保存しました",
+      "empty": "項目はまだありません。"
+    }
+  },
+  "Interviews": {
+    "title": "面接予定者",
+    "description": "書類選考を通過した応募者の、面接日程の状況です。対応が必要な人が上に並びます。",
+    "tabs": {
+      "action": "要対応",
+      "scheduled": "日程確定",
+      "all": "すべて"
+    },
+    "empty": "該当する応募者はいません。",
+    "round": "{round}次面接",
+    "status": {
+      "sent": "案内済み",
+      "opened": "ページ閲覧済み",
+      "booked": "日程確定",
+      "expired": "期限切れ",
+      "canceled": "取り消し"
+    },
+    "actionNeeded": {
+      "pending": "日程の確定待ち",
+      "unmatched": "希望の枠が埋まっていました",
+      "unopened": "2日以上ページが開かれていません",
+      "notBooked": "日程がまだ選ばれていません"
+    },
+    "sentAt": "案内 {date}",
+    "openedAt": "閲覧 {date}",
+    "followups": "再案内 {count}回",
+    "preferred": "希望の日時",
+    "confirmSlot": "この日時で確定",
+    "memo": "メモ",
+    "concerns": "気になること",
+    "menu": "{name}さんの操作",
+    "copyLink": "予約ページのリンクをコピー",
+    "copied": "リンクをコピーしました",
+    "resend": "案内メールを再送",
+    "resent": "案内メールを再送しました",
+    "done": "実施済みにする",
+    "noShow": "欠席にする",
+    "cancel": "面接を取り消す",
+    "withdraw": "辞退にする",
+    "updated": "更新しました",
+    "confirmed": "日程を確定しました",
+    "taken": "その枠はすでに埋まっています。別の日時を選ぶか、案内を再送してください。",
+    "interview": {
+      "scheduled": "面接予定",
+      "done": "実施済み",
+      "no_show": "欠席",
+      "canceled": "取り消し"
+    },
+    "join": "会議のURL",
+    "confirmSlotAt": "{slot}で確定",
+    "cancelTitle": "{name}さんの面接を取り消しますか？",
+    "cancelBody": "枠が空き、応募者はもう一度日程を選べるようになります。応募者へのお知らせは自動では送られないため、必要に応じて案内メールを再送してください。",
+    "withdrawTitle": "{name}さんを辞退にしますか？",
+    "withdrawBody": "予定している面接と日程の案内は取り消されます。あとから応募者の詳細で選考に戻すこともできます。",
+    "keep": "やめる"
+  },
+  "Booking": {
+    "title": "面接日程の予約",
+    "lead": "{company}「{job}」の{round}次面接です。ご都合のよい日時を、希望の順に3つまで選んでください。",
+    "minutes": "面接の時間：約{minutes}分",
+    "toolUrl": "方法：オンライン（Web会議のURLは、確定のメールでお知らせします）",
+    "toolOnsite": "方法：対面（場所は、確定のメールでお知らせします）",
+    "pick": "希望の日時",
+    "picked": "第{n}希望",
+    "pickHint": "選んだ順に第1〜第3希望になります。もう一度押すと外せます。",
+    "noSlots": "現在、選べる日時がありません。お手数ですが、担当者にご連絡ください。",
+    "moreDays": "さらに先の日付を表示",
+    "concerns": "気になること（任意）",
+    "concernsHint": "当てはまるものを選ぶと、会社からの回答が表示されます。",
+    "memo": "担当者へのメモ（任意）",
+    "submit": "この内容で送信する",
+    "sending": "送信しています…",
+    "confirmedTitle": "面接の日時が確定しました",
+    "confirmedBody": "確認のメールをお送りしました。日程の変更や辞退は、個人ページから行えます。",
+    "pendingTitle": "ご希望を受け付けました",
+    "pendingBody": "担当者が確認して日時を確定し、メールでお知らせします。",
+    "unmatched": "選んだ日時は、ほかの方の予約で埋まってしまいました。お手数ですが、もう一度お選びください。",
+    "closed": "現在、面接の日程を選べる状態ではありません。",
+    "alreadyBooked": "面接の日時は確定しています。",
+    "pendingNote": "以前のご希望は担当者が確認中です。選び直すと、新しいご希望に置き換わります。",
+    "portal": "個人ページへ戻る",
+    "error": "送信できませんでした。もう一度お試しください。"
   }
 }

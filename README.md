@@ -47,7 +47,7 @@ The functional reference is **lista.** ([lista-hr.com](https://lista-hr.com/), r
 
 ## Status
 
-**Phase 0 (foundation) is built and runs locally:** sign-up with email confirmation, login, password reset, company onboarding, an empty staff dashboard, Postgres Row Level Security with cross-tenant tests, a background job with email, Sentry and CI. Accounts on Supabase, Vercel, Inngest, Resend and Sentry still have to be created before the first deployment; see the [Phase 0 checklist](docs/06-roadmap.md#phase-0--foundation). Next: Phase 1.
+**Phases 0–2 are built and run locally:** the foundation (accounts, companies, Row Level Security, background jobs, CI); intake and AI screening (jobs, entry URLs, the entry and personal pages, document reading, criteria, the screening and candidate lists, the dashboard); and booking (invitations, availability rules and calendar, the booking page with automatic or manual confirmation, reschedule and withdraw, confirmation emails with `.ics`, reminders, follow-ups, templates and a send log). Interviews use a fixed meeting URL for now; Google, Zoom and Teams come later. Accounts on Supabase, Vercel, Inngest, Resend and Sentry still have to be created before the first deployment. What's left per phase is in the [roadmap](docs/06-roadmap.md).
 
 The reference analysis was checked against the live site on **2026-11-02**. The reference changed after the first review on 2026-10-29 (a live product appeared at `app.lista-hr.com`); see [01 §1](docs/01-reference-site-analysis.md#what-changed-since-the-first-crawl-2026-10-29).
 

@@ -1,9 +1,24 @@
 import "server-only";
 import { Resend } from "resend";
 
-export type OutgoingEmail = { to: string; subject: string; text: string };
+export type OutgoingEmail = {
+  to: string;
+  subject: string;
+  text: string;
+  /** Display name for the sender, such as "{client} 採用担当" (docs/05 §10). */
+  fromName?: string;
+  replyTo?: string | null;
+  attachments?: { filename: string; content: string; contentType: string }[];
+};
 
 export type SendResult = { id: string | null; dryRun: boolean };
+
+/** "Name <address>" with the address taken from EMAIL_FROM (which may carry its own name). */
+function sender(from: string, name: string | undefined): string {
+  if (!name) return from;
+  const address = from.match(/<([^>]+)>/)?.[1] ?? from;
+  return `"${name.replace(/["\\]/g, "")}" <${address}>`;
+}
 
 /**
  * Sends through Resend. Without RESEND_API_KEY and EMAIL_FROM it logs a dry run instead, so local
@@ -19,10 +34,12 @@ export async function sendEmail(email: OutgoingEmail): Promise<SendResult> {
   }
 
   const { data, error } = await new Resend(apiKey).emails.send({
-    from,
+    from: sender(from, email.fromName),
     to: email.to,
     subject: email.subject,
     text: email.text,
+    ...(email.replyTo ? { replyTo: email.replyTo } : {}),
+    ...(email.attachments ? { attachments: email.attachments } : {}),
   });
   if (error) throw new Error(`Resend: ${error.message}`);
   return { id: data?.id ?? null, dryRun: false };

@@ -94,7 +94,18 @@ Code status as of 2026-11-02: work packages 1–11 are built and verified locall
 | 5 | Core emails: invitation, follow-up, confirmation with `.ics`, day-before reminder, rejection; basic template editing; send log; quiet hours; test mode | M9-1, M9-3 (basic), M9-5, M9-6 |
 | 6 | Dashboard: today's interviews, pending requests; notifications for confirmed and tomorrow's interviews | M6-3, M6-4 |
 
-**Exit:** E2E *pass → invitation → booking → auto-confirm → reminder scheduled → reschedule cancels the old reminder* is green, and a concurrency test produces zero double bookings.
+Code status as of 2026-11-03: work packages 1–6 are built with a fixed meeting URL or an on-site address; calendar and video integrations are not started. Verified on the local Supabase stack with the Inngest dev server and the AI in fake mode.
+
+- [x] 1 · Invitation on pass and on "next round" (one per round), "to interview" list with the people who need action first, booking link to copy, resend, two follow-ups three days apart while nothing is booked
+- [x] 2 · Rules (common and per-weekday hours, first and later round lengths, buffer, weekends, holidays, booking window, notice, change cutoff), month calendar with per-slot overrides, free-slot engine (pure, unit-tested, Japanese holidays)
+- [x] 3 · Booking page (up to three picks in order, concerns with the company's answers, memo); automatic confirmation of the first free pick, or confirmation by staff; reschedule and withdraw from the personal page; staff mark done, no-show or cancel. Overlaps are impossible: an exclusion constraint per calendar, and bookings on one calendar take turns under an advisory lock
+- [x] 4 · Fixed meeting URL or on-site address
+- [ ] 4 · Google Calendar + Meet, Zoom, Teams (needs OAuth apps; submit Google verification first)
+- [x] 5 · Emails: invitation, follow-ups, confirmation with `.ics`, reminder at 18:00 the day before, rejection at 10:00 the next morning; template editing with merge-field checks and a preview; send log with delivery and bounce status from the Resend webhook; quiet hours 21:00–08:00 for automatic sends; test mode
+- [x] 6 · Dashboard: today's interviews and a "日程の確定待ち" counter; notifications for booking requests, unmatched requests, confirmed interviews and tomorrow's interviews
+- [ ] Apply the Phase 1 and Phase 2 migrations to the hosted project (`pnpm db:push`), then add the Resend webhook and `RESEND_WEBHOOK_SECRET`
+
+**Exit:** E2E *pass → invitation → booking → auto-confirm → reminder scheduled → reschedule cancels the old reminder* is green, and a concurrency test produces zero double bookings. *Partly met locally on 2026-11-03:* the flow passed as a manual browser walkthrough (the reminder run was waiting, and the reschedule cancelled it), and `tests/db/booking.test.ts` books one slot from eight concurrent requests exactly once. The flow is not yet an automated Playwright test.
 
 ---
 

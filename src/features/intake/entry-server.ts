@@ -5,7 +5,7 @@ import { formatPay } from "@/features/jobs/checks";
 import { japanToday } from "@/features/jobs/mutations";
 import { postingFieldsSchema } from "@/features/jobs/schema";
 import { STANDARD_ANSWER_KEYS } from "@/features/screening/presets";
-import { protectContact } from "@/server/crypto/pii";
+import { encryptPii, protectContact } from "@/server/crypto/pii";
 import { newToken, sha256 } from "@/server/crypto/tokens";
 import { getAdminDb } from "@/server/db/admin";
 import type { Tx } from "@/server/db/client";
@@ -311,12 +311,13 @@ export async function createEntryApplication(
         source: "entry",
         waitingOn: "candidate",
         portalTokenHash: sha256(token),
+        portalTokenEnc: encryptPii(token),
         otherJobsOptIn: Boolean(view.agency) && input.otherJobsOptIn,
       })
       .onConflictDoUpdate({
         target: [applications.jobId, applications.candidateId],
         // Only the token changes: a repeat entry never moves an application back.
-        set: { portalTokenHash: sha256(token) },
+        set: { portalTokenHash: sha256(token), portalTokenEnc: encryptPii(token) },
       })
       .returning({ id: applications.id, created: sql<boolean>`(xmax = 0)` });
     const applicationId = application!.id;

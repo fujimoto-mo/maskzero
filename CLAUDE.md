@@ -3,8 +3,9 @@
 @AGENTS.md
 
 AI recruiting platform for Japanese recruitment agencies and in-house HR teams. Product and plan:
-[README.md](README.md) and [docs/](docs/). Phase 0 (foundation) and Phase 1 work packages 1–11
-(intake and screening) are built; what's left is tracked in [docs/06-roadmap.md](docs/06-roadmap.md).
+[README.md](README.md) and [docs/](docs/). Phase 0 (foundation), Phase 1 work packages 1–11
+(intake and screening) and Phase 2 (booking and scheduling, fixed meeting URL only) are built;
+what's left is tracked in [docs/06-roadmap.md](docs/06-roadmap.md).
 
 ## Commands
 
@@ -50,6 +51,10 @@ local Docker stack is optional and is what the database tests run against.
   anything unusual (injection, unverified quotes, low legibility, AI failure, no documents) goes to
   "needs review". Manual decisions are never overwritten by re-screening.
 - **No personal data in logs or Sentry.** `src/lib/sentry.ts` scrubs emails and phone numbers.
+- **Interviews are booked only through `bookFirstFree()`** (`src/features/scheduling/server.ts`):
+  it takes the calendar's advisory lock, and the `interviews_no_overlap` constraint rejects overlaps.
+- **Candidate emails go through `sendCandidateMessage()`** with a unique dedupe key, from Inngest
+  steps; automatic sends wait out quiet hours (21:00–08:00 JST) and recheck state before sending.
 - **UI text** lives in `src/messages/ja.json` (keys are type-checked). Write original Japanese copy;
   never reuse lista-hr.com wording or assets ([docs/01 §11](docs/01-reference-site-analysis.md#11-originality-rules-for-mask0)).
   Keys can't contain dots (next-intl nests on them). Each route group sends only its namespaces to

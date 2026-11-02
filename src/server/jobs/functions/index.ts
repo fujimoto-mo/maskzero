@@ -1,6 +1,12 @@
 import { processApplication } from "./process-application";
 import { purgeExpiredApplications } from "./purge-expired-applications";
 import { rescreenJob } from "./rescreen-job";
+import {
+  interviewLifecycle,
+  invitationLifecycle,
+  invitationResendEmail,
+  rejectionNotice,
+} from "./scheduling";
 import { sendWelcomeEmail } from "./send-welcome-email";
 import { sweepPendingApplications } from "./sweep-pending-applications";
 
@@ -11,4 +17,8 @@ export const functions = [
   rescreenJob,
   sweepPendingApplications,
   purgeExpiredApplications,
+  invitationLifecycle,
+  invitationResendEmail,
+  interviewLifecycle,
+  rejectionNotice,
 ];

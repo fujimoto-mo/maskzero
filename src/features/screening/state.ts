@@ -12,8 +12,9 @@ export function stateForVerdict(verdict: Verdict) {
         stage: "booking",
         outcome: "active",
         closeReason: null,
-        waitingOn: "staff",
-        nextAction: "invite_interview",
+        // The interview invitation goes out with the pass (docs/02 M7-1).
+        waitingOn: "candidate",
+        nextAction: "await_booking",
       } as const;
     case "fail":
     case "manual_fail":
