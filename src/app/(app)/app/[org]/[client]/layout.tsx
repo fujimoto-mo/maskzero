@@ -1,5 +1,7 @@
 import {
   BriefcaseBusinessIcon,
+  CalendarCheckIcon,
+  CalendarDaysIcon,
   FileCheckIcon,
   LayoutDashboardIcon,
   LinkIcon,
@@ -27,7 +29,10 @@ export default async function ClientLayout({
 }: LayoutProps<"/app/[org]/[client]">) {
   const { org, client } = await params;
   const ctx = await requireMember(org, client);
-  const [t, notifications] = await Promise.all([getTranslations(), getNotifications(ctx)]);
+  const [t, notifications] = await Promise.all([
+    getTranslations(),
+    getNotifications(ctx, new Date()),
+  ]);
   const base = `/app/${ctx.orgSlug}/${ctx.clientSlug}`;
 
   const sidebar = (
@@ -51,8 +56,14 @@ export default async function ClientLayout({
         <NavLink href={`${base}/screening`} icon={<FileCheckIcon aria-hidden />}>
           {t("App.nav.screening")}
         </NavLink>
+        <NavLink href={`${base}/interviews`} icon={<CalendarCheckIcon aria-hidden />}>
+          {t("App.nav.interviews")}
+        </NavLink>
         <NavLink href={`${base}/candidates`} icon={<UsersIcon aria-hidden />}>
           {t("App.nav.candidates")}
+        </NavLink>
+        <NavLink href={`${base}/scheduling`} icon={<CalendarDaysIcon aria-hidden />}>
+          {t("App.nav.scheduling")}
         </NavLink>
         <NavLink href={`${base}/entry-urls`} icon={<LinkIcon aria-hidden />}>
           {t("App.nav.entryUrls")}

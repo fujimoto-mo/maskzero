@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { BarList, Columns, Funnel } from "@/features/dashboard/components/charts";
 import { getDashboard } from "@/features/dashboard/queries";
 import { listJobOptions } from "@/features/jobs/queries";
+import { jstTime } from "@/features/scheduling/slots";
 import { greetingKey } from "@/lib/greeting";
 import { canEdit, requireMember } from "@/server/auth/session";
 
@@ -45,6 +46,11 @@ export default async function DashboardPage({
       key: "waitingDocuments",
       value: data.counters.waitingDocuments,
       href: `${base}/candidates?group=screening`,
+    },
+    {
+      key: "pendingRequests",
+      value: data.counters.pendingRequests,
+      href: `${base}/interviews?tab=action`,
     },
   ] as const;
   const lastWeek = data.days.slice(0, 7).reduce((sum, d) => sum + d.count, 0);
@@ -86,7 +92,7 @@ export default async function DashboardPage({
         <h2 id="todo" className="text-sm font-semibold">
           {t("todo")}
         </h2>
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {counters.map((c) => (
             <li key={c.key}>
               <Link
@@ -103,6 +109,49 @@ export default async function DashboardPage({
           ))}
         </ul>
       </section>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("todayTitle")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {data.today.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t("todayEmpty")}</p>
+          ) : (
+            <ul className="grid gap-2">
+              {data.today.map((item) => (
+                <li
+                  key={`${item.applicationId}-${item.startsAt}`}
+                  className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm"
+                >
+                  <span className="font-medium tabular-nums">
+                    {jstTime(new Date(item.startsAt))}〜{jstTime(new Date(item.endsAt))}
+                  </span>
+                  <Link
+                    href={`${base}/candidates?app=${item.applicationId}`}
+                    className="underline-offset-4 hover:underline"
+                  >
+                    {item.name}
+                  </Link>
+                  <span className="text-muted-foreground">
+                    {t("todayRound", { round: item.round })}
+                  </span>
+                  {item.meetingUrl ? (
+                    <a
+                      href={item.meetingUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-primary underline-offset-4 hover:underline"
+                    >
+                      {t("join")}
+                    </a>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>

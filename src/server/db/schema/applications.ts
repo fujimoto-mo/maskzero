@@ -113,6 +113,8 @@ export const applications = pgTable(
     nextAction: text("next_action"),
     /** sha256 of the personal-page token (/p/{token}); the token itself is never stored. */
     portalTokenHash: text("portal_token_hash").unique(),
+    /** The same token, encrypted (server/crypto/pii.ts), so emails and staff can link to it. */
+    portalTokenEnc: text("portal_token_enc"),
     otherJobsOptIn: boolean("other_jobs_opt_in").notNull().default(false),
     appliedAt: timestamp("applied_at", { withTimezone: true }).notNull().defaultNow(),
     closedAt: timestamp("closed_at", { withTimezone: true }),

@@ -27,6 +27,7 @@ import {
   screeningRuns,
   screeningSettings,
 } from "@/server/db/schema";
+import { issueInvitation } from "@/features/interviews/server";
 import { recordEvent } from "@/server/events";
 import { sniffFileType } from "@/server/files";
 import { downloadObject, removeObjects } from "@/server/storage";
@@ -175,7 +176,7 @@ export async function readOne(
 const KIND_LABELS = { resume: "履歴書", cv: "職務経歴書", other: "書類" } as const;
 
 export type ScreenOutcome =
-  | { verdict: Verdict; score: number | null }
+  | { verdict: Verdict; score: number | null; invitationId: string | null }
   | { skipped: "notFound" | "closed" | "manual" | "advanced" };
 
 /**
@@ -195,6 +196,7 @@ export async function screenApplication(
       stage: applications.stage,
       outcome: applications.outcome,
       verdict: applications.verdict,
+      currentRound: applications.currentRound,
       candidateName: candidates.name,
     })
     .from(applications)
@@ -286,7 +288,7 @@ export async function screenApplication(
   const decision = decide({ criteria, settings, answers, ai, documentText: masked, flags });
   const state = stateForVerdict(decision.verdict);
 
-  await db.transaction(async (tx) => {
+  const invitationId = await db.transaction(async (tx) => {
     const [run] = await tx
       .insert(screeningRuns)
       .values({
@@ -315,7 +317,7 @@ export async function screenApplication(
         ),
       )
       .returning({ id: applications.id });
-    if (updated.length === 0) return;
+    if (updated.length === 0) return null;
     await tx.insert(screeningDecisions).values({
       orgId,
       clientId: app.clientId,
@@ -336,8 +338,16 @@ export async function screenApplication(
         reasons: decision.reasons,
       },
     });
+    if (decision.verdict !== "pass") return null;
+    return issueInvitation(tx, {
+      orgId,
+      clientId: app.clientId,
+      applicationId,
+      round: app.currentRound,
+      actor: "system",
+    });
   });
-  return { verdict: decision.verdict, score: decision.score };
+  return { verdict: decision.verdict, score: decision.score, invitationId };
 }
 
 /** After processing gave up: leave the application with a person instead of stuck in "pending". */

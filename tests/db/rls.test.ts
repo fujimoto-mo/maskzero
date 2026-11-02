@@ -5,6 +5,7 @@ import { eq, sql } from "drizzle-orm";
 import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { insertSampleJob } from "@/features/jobs/mutations";
+import { bookFirstFree, ensureCalendar } from "@/features/scheduling/server";
 import { getDb } from "@/server/db/client";
 import { withRls } from "@/server/db/rls";
 import * as schema from "@/server/db/schema";
@@ -100,6 +101,11 @@ describe("RLS coverage", () => {
     "invitations",
     "events",
     "audit_logs",
+    "calendars",
+    "interviews",
+    "booking_requests",
+    "message_templates",
+    "messages",
   ])("gives the anon role no access to %s", async (table) => {
     const message = await rejection(
       admin.begin(async (tx) => {
@@ -434,6 +440,175 @@ describe("Phase 1: jobs, candidates and screening", () => {
     const [open] = await admin<{ closed_at: Date | null; purge_after: Date | null }[]>`
       select closed_at, purge_after from applications where id = ${defaultApp}`;
     expect(open).toEqual({ closed_at: null, purge_after: null });
+  });
+});
+
+describe("Phase 2: scheduling and email", () => {
+  // Everything below lives in alice's default client, which carol (scoped to the second client)
+  // and bob (another company) must not see.
+  const CLIENT_TABLES = [
+    "calendars",
+    "availability_rules",
+    "slot_overrides",
+    "concern_options",
+    "interview_invitations",
+    "booking_requests",
+    "interviews",
+    "messages",
+  ];
+  let calendarId = "";
+  let applicationId = "";
+  let invitationId = "";
+
+  beforeAll(async () => {
+    [{ id: calendarId }] = await admin<{ id: string }[]>`
+      insert into calendars (org_id, client_id, name) values (${aliceOrg}, ${aliceDefaultClient}, '面接')
+      returning id`;
+    await admin`insert into availability_rules (calendar_id, org_id, client_id)
+                values (${calendarId}, ${aliceOrg}, ${aliceDefaultClient})`;
+    await admin`insert into slot_overrides (org_id, client_id, calendar_id, starts_at, open)
+                values (${aliceOrg}, ${aliceDefaultClient}, ${calendarId}, '2030-02-01T01:00:00Z', false)`;
+    await admin`insert into concern_options (org_id, client_id, label, answer)
+                values (${aliceOrg}, ${aliceDefaultClient}, '服装', '自由です')`;
+    const [{ id: jobId }] = await admin<{ id: string }[]>`
+      insert into jobs (org_id, client_id, title) values (${aliceOrg}, ${aliceDefaultClient}, '面接職')
+      returning id`;
+    const [{ id: candidateId }] = await admin<{ id: string }[]>`
+      insert into candidates (org_id, name) values (${aliceOrg}, '面接 候補') returning id`;
+    [{ id: applicationId }] = await admin<{ id: string }[]>`
+      insert into applications (org_id, client_id, job_id, candidate_id, source, stage)
+      values (${aliceOrg}, ${aliceDefaultClient}, ${jobId}, ${candidateId}, 'manual', 'booking')
+      returning id`;
+    [{ id: invitationId }] = await admin<{ id: string }[]>`
+      insert into interview_invitations (org_id, client_id, application_id)
+      values (${aliceOrg}, ${aliceDefaultClient}, ${applicationId}) returning id`;
+    await admin`insert into booking_requests (org_id, client_id, invitation_id, preferred)
+                values (${aliceOrg}, ${aliceDefaultClient}, ${invitationId}, '[]'::jsonb)`;
+    await admin`insert into interviews (org_id, client_id, application_id, invitation_id, calendar_id,
+                                        starts_at, ends_at, tool)
+                values (${aliceOrg}, ${aliceDefaultClient}, ${applicationId}, ${invitationId},
+                        ${calendarId}, '2030-02-04T01:00:00Z', '2030-02-04T02:00:00Z', 'url')`;
+    await admin`insert into messages (org_id, client_id, application_id, trigger, subject,
+                                      body_rendered, dedupe_key, status)
+                values (${aliceOrg}, ${aliceDefaultClient}, ${applicationId}, 'pass', '件名', '本文',
+                        ${`rls-${run}`}, 'dry_run')`;
+  });
+
+  it.each(CLIENT_TABLES)("shows %s only inside the org and client scope", async (table) => {
+    const count = async (user: User) => {
+      const [row] = await withRls(user, (tx) =>
+        tx.execute<{ n: number }>(sql.raw(`select count(*)::int as n from public.${table}`)),
+      );
+      return row!.n;
+    };
+    expect(await count(alice)).toBeGreaterThan(0);
+    expect(await count(bob)).toBe(0);
+    expect(await count(carol)).toBe(0);
+  });
+
+  it("rejects scheduling writes in clients the member may not edit", async () => {
+    const scoped = await rejection(
+      withRls(carol, (tx) =>
+        tx.insert(schema.interviewInvitations).values({
+          orgId: aliceOrg,
+          clientId: aliceDefaultClient,
+          applicationId,
+          round: 2,
+        }),
+      ),
+    );
+    expect(scoped).toMatch(/row-level security/);
+    const foreign = await rejection(
+      withRls(bob, (tx) =>
+        tx
+          .insert(schema.calendars)
+          .values({ orgId: aliceOrg, clientId: aliceDefaultClient, name: "乗っ取り" }),
+      ),
+    );
+    expect(foreign).toMatch(/row-level security/);
+  });
+
+  it("refuses an overlapping interview on the same calendar", async () => {
+    // The exclusion constraint is the last line against double booking (docs/05 §9).
+    const overlapping = await rejection(
+      withRls(alice, (tx) =>
+        tx.insert(schema.interviews).values({
+          orgId: aliceOrg,
+          clientId: aliceDefaultClient,
+          applicationId,
+          calendarId,
+          startsAt: new Date("2030-02-04T01:30:00Z"),
+          endsAt: new Date("2030-02-04T02:30:00Z"),
+          tool: "url",
+        }),
+      ),
+    );
+    expect(overlapping).toMatch(/interviews_no_overlap/);
+  });
+
+  it("keeps the send log read-only for staff", async () => {
+    const message = await rejection(
+      withRls(alice, (tx) =>
+        tx.insert(schema.messages).values({
+          orgId: aliceOrg,
+          clientId: aliceDefaultClient,
+          applicationId,
+          trigger: "pass",
+          subject: "偽装",
+          bodyRendered: "偽装",
+          dedupeKey: `spoof-${run}`,
+        }),
+      ),
+    );
+    expect(message).toMatch(/permission denied/);
+  });
+
+  it("lets every member read the company's email templates, and only admins change them", async () => {
+    const template = (user: User) =>
+      withRls(user, (tx) =>
+        tx
+          .insert(schema.messageTemplates)
+          .values({ orgId: aliceOrg, trigger: "reminder", subject: "件名", body: "{interview_at}" })
+          .onConflictDoNothing(),
+      );
+    expect(await rejection(template(carol))).toMatch(/row-level security/);
+    expect(await rejection(template(bob))).toMatch(/row-level security/);
+    await template(alice);
+
+    const visible = (user: User) =>
+      withRls(user, (tx) =>
+        tx
+          .select({ orgId: schema.messageTemplates.orgId })
+          .from(schema.messageTemplates)
+          .where(eq(schema.messageTemplates.orgId, aliceOrg)),
+      );
+    expect(await visible(carol)).toHaveLength(1);
+    expect(await visible(bob)).toEqual([]);
+  });
+
+  it("lets staff confirm a slot by hand under their own policies", async () => {
+    const scope = { orgId: aliceOrg, clientId: aliceDefaultClient };
+    const startsAt = new Date("2030-02-05T10:00:00+09:00"); // a Tuesday
+    const booked = await withRls(alice, async (tx) => {
+      const { rules } = await ensureCalendar(tx, scope);
+      return bookFirstFree(tx, {
+        ...scope,
+        applicationId,
+        invitationId,
+        calendarId,
+        rules,
+        round: 1,
+        preferred: [{ startsAt, endsAt: new Date(startsAt.getTime() + 3600_000) }],
+        now: new Date("2030-02-04T09:00:00+09:00"),
+        actor: { kind: "staff", userId: alice.userId },
+      });
+    });
+    expect(booked?.slot.startsAt).toEqual(startsAt);
+    const [state] = await admin<{ stage: string; invitation: string }[]>`
+      select a.stage, i.status as invitation from applications a
+      join interview_invitations i on i.application_id = a.id
+      where a.id = ${applicationId}`;
+    expect(state).toEqual({ stage: "scheduled", invitation: "booked" });
   });
 });
 

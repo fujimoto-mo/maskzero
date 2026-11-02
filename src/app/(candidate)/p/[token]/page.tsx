@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PortalUploads } from "@/features/intake/components/portal-uploads";
+import { loadCandidateSchedule } from "@/features/interviews/candidate-server";
+import { InterviewControls } from "@/features/interviews/components/interview-controls";
+import { formatSlot } from "@/features/scheduling/slots";
+import { TOOL_LABELS } from "@/server/messaging/send";
 import { loadPortal } from "@/features/intake/entry-server";
 
 export const instant = false; // per-request: the token is the only key to this page
@@ -23,7 +29,16 @@ export default async function PortalPage({ params }: PageProps<"/p/[token]">) {
   const portal = await loadPortal(token);
   if (!portal) notFound();
   const { view } = portal;
-  const [t, entry] = await Promise.all([getTranslations("Portal"), getTranslations("Entry")]);
+  const [t, entry, schedule] = await Promise.all([
+    getTranslations("Portal"),
+    getTranslations("Entry"),
+    loadCandidateSchedule(portal.scope, new Date()),
+  ]);
+  const interview = schedule.interview;
+  const bookable =
+    schedule.outcome === "active" &&
+    !interview &&
+    (schedule.invitation?.status === "sent" || schedule.invitation?.status === "opened");
 
   return (
     <div className="grid gap-5">
@@ -45,6 +60,72 @@ export default async function PortalPage({ params }: PageProps<"/p/[token]">) {
           <CardTitle>{t(`status.${view.status}`)}</CardTitle>
         </CardHeader>
       </Card>
+
+      {interview ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("interviewTitle")}</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 text-sm">
+            <dl className="grid grid-cols-[4rem_1fr] gap-x-2 gap-y-1">
+              <dt className="text-muted-foreground">{t("interviewAt")}</dt>
+              <dd className="font-medium">
+                {formatSlot({
+                  startsAt: new Date(interview.startsAt),
+                  endsAt: new Date(interview.endsAt),
+                })}
+              </dd>
+              <dt className="text-muted-foreground">{t("method")}</dt>
+              <dd>{TOOL_LABELS[interview.tool]}</dd>
+              {interview.meetingUrl ? (
+                <>
+                  <dt className="text-muted-foreground">URL</dt>
+                  <dd>
+                    <a
+                      href={interview.meetingUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="break-all text-primary underline underline-offset-4"
+                    >
+                      {t("join")}
+                    </a>
+                  </dd>
+                </>
+              ) : interview.location ? (
+                <>
+                  <dt className="text-muted-foreground">{t("place")}</dt>
+                  <dd>{interview.location}</dd>
+                </>
+              ) : null}
+            </dl>
+            <p className="text-xs text-muted-foreground">
+              {interview.changeableUntil
+                ? t("changeUntil", {
+                    date: formatSlot({
+                      startsAt: new Date(interview.changeableUntil),
+                      endsAt: new Date(interview.changeableUntil),
+                    }).replace(/〜.*$/, ""),
+                  })
+                : t("tooLate")}
+            </p>
+            <InterviewControls token={token} canReschedule={Boolean(interview.changeableUntil)} />
+          </CardContent>
+        </Card>
+      ) : bookable ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("interviewTitle")}</CardTitle>
+            <CardDescription>
+              {schedule.request === "pending" ? t("awaitingConfirmation") : t("bookLead")}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild>
+              <Link href={`/p/${token}/book`}>{t("book")}</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>

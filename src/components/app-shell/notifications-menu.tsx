@@ -14,8 +14,31 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { markNotificationsReadAction } from "@/features/notifications/actions";
-import type { NotificationItem } from "@/features/notifications/queries";
+import type { NotificationItem, NotificationKind } from "@/features/notifications/queries";
 import { cn } from "@/lib/utils";
+
+const MESSAGES = {
+  application: "newApplication",
+  review: "needsReview",
+  requested: "requested",
+  unmatched: "unmatched",
+  scheduled: "scheduled",
+  tomorrow: "tomorrow",
+} as const satisfies Record<NotificationKind, string>;
+
+function hrefFor(base: string, item: NotificationItem) {
+  switch (item.kind) {
+    case "application":
+    case "review":
+      return `${base}/screening?job=${item.jobId}&app=${item.applicationId}`;
+    case "requested":
+    case "unmatched":
+      return `${base}/interviews?tab=action`;
+    case "scheduled":
+    case "tomorrow":
+      return `${base}/interviews?tab=scheduled`;
+  }
+}
 
 const timeFormat = new Intl.DateTimeFormat("ja-JP", {
   month: "numeric",
@@ -25,7 +48,7 @@ const timeFormat = new Intl.DateTimeFormat("ja-JP", {
   timeZone: "Asia/Tokyo",
 });
 
-/** The header bell: recent entries and applications that need a person (docs/02 M6-4). */
+/** The header bell: new entries, work that needs a person and interviews (docs/02 M6-4). */
 export function NotificationsMenu({
   base,
   items,
@@ -77,17 +100,12 @@ export function NotificationsMenu({
         ) : (
           items.map((item) => (
             <DropdownMenuItem key={`${item.kind}-${item.applicationId}-${item.at}`} asChild>
-              <Link
-                href={`${base}/screening?job=${item.jobId}&app=${item.applicationId}`}
-                className="grid gap-0.5"
-              >
+              <Link href={hrefFor(base, item)} className="grid gap-0.5">
                 <span className={cn("text-sm", item.unread && "font-medium")}>
                   {item.unread ? (
                     <span className="mr-1.5 inline-block size-1.5 rounded-full bg-primary align-middle" />
                   ) : null}
-                  {t(item.kind === "application" ? "newApplication" : "needsReview", {
-                    name: item.name,
-                  })}
+                  {t(MESSAGES[item.kind], { name: item.name })}
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {timeFormat.format(new Date(item.at))}

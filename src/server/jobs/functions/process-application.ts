@@ -6,7 +6,7 @@ import {
   verifyDocuments,
 } from "@/server/screening/pipeline";
 import { inngest } from "../client";
-import { applicationRescreen, applicationSubmitted } from "../events";
+import { applicationRescreen, applicationSubmitted, invitationCreated } from "../events";
 
 const RETRIES = 3;
 
@@ -43,6 +43,16 @@ export const processApplication = inngest.createFunction(
     for (const documentId of toRead) {
       await step.run(`read-${documentId}`, () => readOne(documentId, orgId, lastAttempt));
     }
-    return step.run("screen", () => screenApplication(applicationId, orgId, lastAttempt));
+    const result = await step.run("screen", () =>
+      screenApplication(applicationId, orgId, lastAttempt),
+    );
+    // A pass invites the candidate to book an interview (docs/02 M7-1).
+    if ("invitationId" in result && result.invitationId) {
+      await step.sendEvent(
+        "send-invitation",
+        invitationCreated.create({ invitationId: result.invitationId, orgId }),
+      );
+    }
+    return result;
   },
 );
