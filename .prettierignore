@@ -1,0 +1,7 @@
+pnpm-lock.yaml
+next-env.d.ts
+.next/
+supabase/.temp/
+supabase/migrations/meta/
+# Docs are written by hand; keep their formatting as authored.
+*.md

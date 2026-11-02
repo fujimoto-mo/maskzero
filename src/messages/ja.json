@@ -1,0 +1,100 @@
+{
+  "Common": {
+    "logIn": "ログイン",
+    "signUp": "新規登録",
+    "logOut": "ログアウト",
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "submitting": "送信中…"
+  },
+  "Home": {
+    "eyebrow": "採用チームのためのAIプラットフォーム",
+    "headline": "応募対応の手間を、AIで減らす。",
+    "lead": "書類の読み込み、合否の判定、面接日の調整。繰り返しの作業はmask0に任せて、人は判断と対話に集中できます。",
+    "comingSoon": "サービスサイトは準備中です。",
+    "toLogin": "管理画面にログイン",
+    "toSignup": "アカウントを作成"
+  },
+  "Auth": {
+    "login": {
+      "title": "ログイン",
+      "description": "採用担当者の管理画面にログインします。",
+      "submit": "ログイン",
+      "forgot": "パスワードを忘れた方",
+      "noAccount": "アカウントをお持ちでない方",
+      "google": "Googleでログイン",
+      "or": "または"
+    },
+    "signup": {
+      "title": "新規登録",
+      "description": "メールアドレスとパスワードでアカウントを作成します。",
+      "passwordHint": "8文字以上",
+      "submit": "登録する",
+      "haveAccount": "すでにアカウントをお持ちの方"
+    },
+    "checkEmail": {
+      "title": "確認メールを送りました",
+      "description": "届いたメールのリンクを開くと、登録が完了します。",
+      "hint": "メールが見つからない場合は、迷惑メールフォルダもご確認ください。"
+    },
+    "forgot": {
+      "title": "パスワードの再設定",
+      "description": "登録したメールアドレスに、再設定用のリンクを送ります。",
+      "submit": "リンクを送る",
+      "sent": "再設定用のメールを送りました。メール内のリンクを開いてください。"
+    },
+    "reset": {
+      "title": "新しいパスワード",
+      "description": "新しいパスワードを決めてください。",
+      "submit": "パスワードを変更する"
+    },
+    "errors": {
+      "invalidCredentials": "メールアドレスかパスワードが違います。",
+      "emailNotConfirmed": "メールアドレスの確認が済んでいません。届いたメールのリンクを開いてください。",
+      "invalidEmail": "メールアドレスの形式が正しくありません。",
+      "passwordTooShort": "パスワードは8文字以上で入力してください。",
+      "userExists": "このメールアドレスはすでに登録されています。ログインしてください。",
+      "rateLimited": "短い時間に何度も送信されました。少し待ってからお試しください。",
+      "linkExpired": "リンクの有効期限が切れているか、すでに使われています。もう一度お試しください。",
+      "generic": "うまくいきませんでした。時間をおいてもう一度お試しください。"
+    }
+  },
+  "Onboarding": {
+    "title": "会社を登録する",
+    "description": "はじめに、採用を行う会社の情報を登録してください。",
+    "companyName": "会社名",
+    "companyNamePlaceholder": "例：株式会社サンプル",
+    "kind": "使い方",
+    "kindAgency": "採用支援会社として、取引先の採用を代行する",
+    "kindInhouse": "自社の採用に使う",
+    "submit": "登録してはじめる",
+    "errors": {
+      "nameRequired": "会社名を入力してください。",
+      "nameTooLong": "会社名は100文字以内で入力してください。"
+    }
+  },
+  "App": {
+    "nav": {
+      "dashboard": "ダッシュボード",
+      "mainMenu": "メインメニュー"
+    },
+    "dashboard": {
+      "title": "ダッシュボード",
+      "greetingMorning": "おはようございます",
+      "greetingDay": "こんにちは",
+      "greetingEvening": "こんばんは",
+      "emptyTitle": "まだ求人がありません",
+      "emptyBody": "次のフェーズで、求人原稿・応募受付URL・AIによる書類選考が使えるようになります。",
+      "company": "会社",
+      "client": "取引先",
+      "role": "権限"
+    },
+    "roles": {
+      "owner": "オーナー",
+      "admin": "管理者",
+      "recruiter": "採用担当",
+      "interviewer": "面接官",
+      "viewer": "閲覧のみ"
+    }
+  }
+}

@@ -1,0 +1,64 @@
+# mask0
+
+**mask0** is an AI recruiting platform for **recruitment agencies (採用支援会社・RPO) and in-house HR teams** in Japan. Recruiters set the screening criteria and their interview availability. mask0 reads every application, scores it against those criteria, invites the people who pass to book an interview, and sends the confirmations and reminders. People make every final decision.
+
+The functional reference is **lista.** ([lista-hr.com](https://lista-hr.com/), run by lim force LLC). mask0 rebuilds the same functions and page structure under its own name, copy and design.
+
+> **mask0 is not a job board.** Candidates never search for jobs here. Jobs stay on Indeed, engage and the other job boards. mask0 takes over **after** someone applies there: the board's auto-reply sends the applicant a mask0 entry link, and everything from document screening to the interview happens in mask0.
+
+## Documents
+
+| # | Document | What's inside |
+|---|----------|---------------|
+| 01 | [Reference analysis](docs/01-reference-site-analysis.md) | Everything on lista-hr.com and app.lista-hr.com: landing page, interactive demo, the live product, candidate pages, API surface, what's built vs. planned, weak spots |
+| 02 | [Feature specification](docs/02-feature-spec.md) | mask0 requirements per module, with phase and acceptance criteria |
+| 03 | [Sitemap and routes](docs/03-sitemap-and-routes.md) | Every mask0 URL: marketing, staff app, candidate pages, API, webhooks |
+| 04 | [Data model](docs/04-data-model.md) | Tables, enums, state machines, events, RLS, retention |
+| 05 | [Architecture and best practices](docs/05-architecture.md) | Stack, repository layout, tenancy, AI pipeline, jobs, uploads, email, security, Japanese compliance |
+| 06 | [Roadmap](docs/06-roadmap.md) | Build order in phases 0–5, exit criteria, risks, next steps |
+| 07 | [Parity checklist](docs/07-parity-checklist.md) | Every reference page and feature mapped to a mask0 route and phase, ready to tick off |
+
+## The recommendation on one page
+
+**Build order:** the order the reference itself shipped in, so every phase is usable on real applicants:
+
+| Phase | Delivers |
+|-------|----------|
+| 0 | Repo, auth, tenancy, CI |
+| 1 | Job postings with per-board paste views, entry links, mobile entry page, AI document screening, candidate list (= the reference's live product today) |
+| 2 | Interview invitations, availability, booking page, calendars, core emails |
+| 3 | Full email automation, inbound job-board mail, analytics, roles and multi-client, billing |
+| 4 | Interviews: prep, notes, recording, AI report, live assist |
+| 5 | AI interviewer (research track, behind a flag) |
+
+**Stack:** Next.js (App Router, TypeScript) on Vercel with Tokyo functions · Supabase Postgres, Auth and Storage in Tokyo · Drizzle ORM with Row Level Security as a second guard · Inngest for every background step · Resend for email · Claude API (`claude-opus-5-5`) for reading documents and screening · Sentry.
+
+**Design rules:**
+1. The AI reads and quotes; **code computes scores and verdicts**.
+2. **No automatic rejections** by default: a person confirms every rejection.
+3. Every AI reason carries a **verbatim quote that the server verifies** against the document.
+4. Documents are data, not instructions: suspected **prompt injection goes to a person**.
+5. **Tenant isolation twice**: explicit filters in the app plus RLS in the database.
+6. Every asynchronous step runs in a **durable queue**, never in a browser tab.
+7. Candidates **never log in**: one hashed, expiring token per application.
+8. **No job-board APIs needed**: entry links, CSV import and forwarded notification emails.
+
+**Where mask0 should beat the reference:** durable processing instead of browser-triggered jobs; direct-to-storage uploads (10 MB PDFs); a forwarding inbound address instead of Gmail mailbox access; a privacy policy, terms and SEO basics from day one; roles, client scoping and MFA early; a demo that runs on the real app; posting checks for Japanese labor-law disclosures.
+
+## Status
+
+**Phase 0 (foundation) is built and runs locally:** sign-up with email confirmation, login, password reset, company onboarding, an empty staff dashboard, Postgres Row Level Security with cross-tenant tests, a background job with email, Sentry and CI. Accounts on Supabase, Vercel, Inngest, Resend and Sentry still have to be created before the first deployment; see the [Phase 0 checklist](docs/06-roadmap.md#phase-0--foundation). Next: Phase 1.
+
+The reference analysis was checked against the live site on **2026-11-02**. The reference changed after the first review on 2026-10-29 (a live product appeared at `app.lista-hr.com`); see [01 §1](docs/01-reference-site-analysis.md#what-changed-since-the-first-crawl-2026-10-29).
+
+## Development
+
+The app runs against a hosted Supabase project (Tokyo region). Fill in `.env` (each value's location is noted in [.env.example](.env.example)), then:
+
+```bash
+pnpm install
+supabase login && pnpm db:link && pnpm db:push   # apply the migrations to your project
+pnpm dev                                         # http://localhost:3000
+```
+
+Dashboard settings, the optional local Docker setup, checks and the database workflow: [CONTRIBUTING.md](CONTRIBUTING.md). Project rules: [CLAUDE.md](CLAUDE.md).
