@@ -13,7 +13,10 @@
    Save the database password.
 2. **Fill in `.env`** (copy `.env.example` if it doesn't exist). The comments in it say where each
    value is in the dashboard: project URL, publishable key, the Transaction pooler connection string
-   (`DATABASE_URL`), the project ref and the database password.
+   (`DATABASE_URL`), the project ref and the database password. Intake and screening also need
+   `SUPABASE_SECRET_KEY` (server-only storage access), `PII_ENCRYPTION_KEY` (generate it once with
+   the command in the file and back it up: without it, stored emails and phone numbers can't be
+   read) and either `ANTHROPIC_API_KEY` or `AI_FAKE=1`.
 3. **Apply the migrations:**
    ```bash
    supabase login     # once per machine
@@ -41,6 +44,19 @@ Run `pnpm inngest:dev` in a second terminal to execute background jobs locally.
 company and a demo login, listed at the top of that file; local only, never pushed). `pnpm env:local`
 then writes `.env.local`, which overrides `.env`; delete it to use the hosted project again. Auth
 emails from the local stack land in Mailpit at http://127.0.0.1:54324.
+
+To try the whole intake flow locally:
+
+```bash
+pnpm db:start
+pnpm env:local --force   # local keys, a fresh PII key and AI_FAKE=1
+pnpm dev
+pnpm inngest:dev         # second terminal: runs reading and screening
+```
+
+Sign in with the demo login, publish a job, issue an entry URL and open it on a phone-sized window.
+With `AI_FAKE=1`, PDFs with a text layer are read as text, photos come back unreadable (so they land
+in "needs review"), and specialist conditions match by keyword. Nothing is sent to Anthropic.
 
 ## Before you push
 

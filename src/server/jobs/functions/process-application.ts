@@ -1,0 +1,48 @@
+import {
+  documentsToRead,
+  markProcessingFailed,
+  readOne,
+  screenApplication,
+  verifyDocuments,
+} from "@/server/screening/pipeline";
+import { inngest } from "../client";
+import { applicationRescreen, applicationSubmitted } from "../events";
+
+const RETRIES = 3;
+
+/**
+ * Verify → read → screen for one application (docs/05 §6). Each document is read in its own step,
+ * so a retry never pays for reading a finished document again.
+ */
+export const processApplication = inngest.createFunction(
+  {
+    id: "process-application",
+    triggers: [applicationSubmitted, applicationRescreen],
+    retries: RETRIES,
+    // One run per application at a time (a newer run sees the newer documents), and a fair share
+    // of the AI per company.
+    concurrency: [
+      { key: "event.data.applicationId", limit: 1 },
+      { key: "event.data.orgId", limit: 10 },
+    ],
+    onFailure: async ({ event }) => {
+      const { applicationId, orgId } = event.data.event.data;
+      await markProcessingFailed(applicationId, orgId);
+    },
+  },
+  async ({ event, step, attempt }) => {
+    const { applicationId, orgId } = event.data;
+    const reread = event.name === applicationRescreen.name && event.data.reread === true;
+    // On the last try, AI outages give up gracefully: the application goes to a person.
+    const lastAttempt = attempt >= RETRIES;
+
+    await step.run("verify-documents", () => verifyDocuments(applicationId, orgId));
+    const toRead = await step.run("documents-to-read", () =>
+      documentsToRead(applicationId, orgId, reread),
+    );
+    for (const documentId of toRead) {
+      await step.run(`read-${documentId}`, () => readOne(documentId, orgId, lastAttempt));
+    }
+    return step.run("screen", () => screenApplication(applicationId, orgId, lastAttempt));
+  },
+);

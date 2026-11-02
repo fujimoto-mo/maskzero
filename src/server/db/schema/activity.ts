@@ -1,4 +1,5 @@
 import { index, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { applications } from "./applications";
 import { id } from "./columns";
 import { clients, organizations, profiles } from "./tenancy";
 
@@ -16,8 +17,10 @@ export const events = pgTable(
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
     clientId: uuid("client_id").references(() => clients.id, { onDelete: "cascade" }),
-    // Foreign key to applications is added in Phase 1, when that table exists.
-    applicationId: uuid("application_id"),
+    // set null, not cascade: deleting an application (a data request) keeps anonymized analytics.
+    applicationId: uuid("application_id").references(() => applications.id, {
+      onDelete: "set null",
+    }),
     actor: eventActor("actor").notNull(),
     actorId: uuid("actor_id"),
     type: text("type").notNull(),

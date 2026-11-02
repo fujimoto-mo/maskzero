@@ -1,6 +1,8 @@
-// Writes .env.local from the running local Supabase stack (`supabase start` first).
+// Writes .env.local from the running local Supabase stack (`supabase start` first). It overrides
+// .env, so the app talks to the local stack; delete it to go back to the hosted project.
 // Usage: pnpm env:local [--force]
 import { execFileSync } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { copyFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 
 const target = ".env.local";
@@ -25,6 +27,7 @@ const values = {
   NEXT_PUBLIC_SUPABASE_URL: local.API_URL,
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: local.PUBLISHABLE_KEY ?? local.ANON_KEY,
   DATABASE_URL: local.DB_URL,
+  SUPABASE_SECRET_KEY: local.SECRET_KEY ?? local.SERVICE_ROLE_KEY,
 };
 for (const [key, value] of Object.entries(values)) {
   if (!value) {
@@ -32,6 +35,9 @@ for (const [key, value] of Object.entries(values)) {
     process.exit(1);
   }
 }
+// Local-only extras: a throwaway encryption key and fake AI, so the whole pipeline runs offline.
+values.PII_ENCRYPTION_KEY = randomBytes(32).toString("base64");
+values.AI_FAKE = "1";
 
 copyFileSync(".env.example", target);
 let env = readFileSync(target, "utf8");

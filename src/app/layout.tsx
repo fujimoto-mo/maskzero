@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Noto_Sans_JP } from "next/font/google";
-import { NextIntlClientProvider } from "next-intl";
 import "./globals.css";
 
 // Geist for Latin text and numbers, Noto Sans JP for Japanese (stacked in globals.css).
@@ -21,7 +20,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geist.variable} ${geistMono.variable} ${notoSansJp.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        {/* Each route group wraps its pages in a NextIntlClientProvider with only the namespaces it uses. */}
+        {children}
       </body>
     </html>
   );

@@ -81,6 +81,20 @@ export const requireMember = cache(
   },
 );
 
+const EDITOR_ROLES: MemberRole[] = ["owner", "admin", "recruiter"];
+
+/** Owners, admins and recruiters change jobs, candidates and screening; others only read. */
+export const canEdit = (ctx: MemberCtx) => EDITOR_ROLES.includes(ctx.role);
+
+export const isAdmin = (ctx: MemberCtx) => ctx.role === "owner" || ctx.role === "admin";
+
+/** requireMember() plus editor rights; for Server Actions that change data. */
+export async function requireEditor(orgSlug: string, clientSlug: string): Promise<MemberCtx> {
+  const ctx = await requireMember(orgSlug, clientSlug);
+  if (!canEdit(ctx)) throw new Error("This action needs recruiter, admin or owner rights.");
+  return ctx;
+}
+
 /** Where a signed-in user lands: their first org's default (or first visible) client, or null. */
 export async function getHomePath(user: SessionUser): Promise<string | null> {
   const [row] = await withRls(user, (tx) =>

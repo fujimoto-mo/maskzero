@@ -55,6 +55,27 @@ Code status as of 2026-11-02: everything that runs locally is done and verified;
 | 12 | AI eval set v1 (≥ 50 labeled synthetic résumés incl. photos and injection samples) and runner | [05 §6.6](05-architecture.md#66-evals-before-the-first-pilot) |
 | 13 | `/demo` sandbox with nightly reset | M0-4, M13-6 |
 
+Code status as of 2026-11-02: work packages 1–11 are built and verified locally (browser walkthroughs on the local Supabase stack, with the AI in fake mode); 12 and 13 are not started. The exit criteria below need a staging deployment, an Anthropic API key and a pilot.
+
+- [x] 1 · Landing page, `/security` `/company`, contact form → `POST /api/contact` (stored, notifies `CONTACT_NOTIFY_EMAIL`), sitemap, robots, OG image
+- [ ] 1 · `/privacy` and `/terms` are drafts: fill the 【…】 placeholders in `src/messages/ja-marketing.json` with legal review, then remove them from `DRAFT_PAGES` (they are `noindex` until then); add `public/guide.pdf` for the materials download
+- [x] 2 · Member invitations (`/invite/[token]`; sign-up keeps the link through email confirmation), profile, sign out everywhere
+- [ ] 2 · Optional TOTP MFA
+- [x] 3 · Jobs: list, editor with live checks, six images, Indeed / engage / other paste views, AI draft, statuses, sample job and conditions on sign-up
+- [x] 4 · Entry URLs (22 boards + custom), entered counts, on/off, auto-reply text with `{URL}`
+- [x] 5 · Entry page (4 steps, photo resizing, direct signed uploads, consent text that follows the job's settings, honeypot, timing check, rate limits) and personal page. A repeat entry never changes stored details and never shows the personal-page link on screen; the link is emailed
+- [ ] 5 · Turnstile on the entry page
+- [x] 6 · Inngest pipeline: verify bytes → read each document → screen; retries, a fallback to "needs review" when processing fails, and a sweep every 10 minutes for lost events. Untested against the real model until `ANTHROPIC_API_KEY` is set
+- [x] 7 · Criteria editor with presets, required flag, weights, lines, toggles (turning off rejection confirmation is audited and changes the consent text), banned-topic block and age exceptions
+- [x] 8 · Screening list with counts, drawer with reasons and verified quotes, transcripts, manual decisions, back to AI, bulk confirm, re-read, staff uploads
+- [x] 9 · Candidate list (keyset pages, name or exact-email search), drawer with timeline, stage changes, manual add, CSV import (Shift_JIS / UTF-8) and export (UTF-8 BOM, audited), deletion
+- [x] 10 · Dashboard counters, per board, 12 months vs last year, funnel, 14 days; notifications; ⌘K search
+- [ ] 10 · Average days per step in the funnel
+- [x] 11 · Company settings, audit log viewer, nightly retention purge, data requests, AI usage per feature, PII encryption
+- [ ] 12 · AI eval set v1 and runner
+- [ ] 13 · `/demo` sandbox
+- [ ] Apply the Phase 1 migrations to the hosted project (`pnpm db:push`)
+
 **Exit**
 - Playwright E2E on staging: *apply on a phone → AI verdict → recruiter passes or confirms the rejection*.
 - Evals: 0 false rejections on required conditions, ≥ 85 % verdict agreement, 100 % of injection samples in `check`.
