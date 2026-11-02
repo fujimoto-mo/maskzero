@@ -60,6 +60,8 @@ export const profiles = pgTable("profiles", {
   avatarUrl: text("avatar_url"),
   locale: text("locale").notNull().default("ja"),
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+  /** Notifications newer than this show as unread. */
+  notificationsSeenAt: timestamp("notifications_seen_at", { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });

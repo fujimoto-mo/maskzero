@@ -8,12 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signUpAction, type AuthFormState } from "../actions";
 
-export function SignupForm() {
+export function SignupForm({ next }: { next: string }) {
   const t = useTranslations();
   const [state, formAction, pending] = useActionState<AuthFormState, FormData>(signUpAction, {});
 
   return (
     <form action={formAction} className="grid gap-4">
+      <input type="hidden" name="next" value={next} />
       <FormAlert error={state.error} />
       <div className="grid gap-2">
         <Label htmlFor="email">{t("Common.email")}</Label>

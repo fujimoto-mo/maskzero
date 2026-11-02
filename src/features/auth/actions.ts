@@ -46,15 +46,18 @@ export async function signUpAction(
   const parsed = signUpSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: t(firstErrorKey(parsed.error)), values };
 
+  const next = safeRedirectPath(formData.get("next"), "/onboarding");
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.signUp({
     ...parsed.data,
-    options: { emailRedirectTo: `${getPublicEnv().appUrl}/auth/callback?next=/onboarding` },
+    options: {
+      emailRedirectTo: `${getPublicEnv().appUrl}/auth/callback?next=${encodeURIComponent(next)}`,
+    },
   });
   if (error) return { error: t(authErrorKey(error.code)), values };
 
   // With email confirmation on (the default), there is no session until the link is opened.
-  redirect(data.session ? "/onboarding" : "/signup/check-email");
+  redirect(data.session ? next : "/signup/check-email");
 }
 
 export async function signInWithGoogleAction(formData: FormData): Promise<void> {

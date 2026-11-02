@@ -3,8 +3,8 @@
 @AGENTS.md
 
 AI recruiting platform for Japanese recruitment agencies and in-house HR teams. Product and plan:
-[README.md](README.md) and [docs/](docs/). Phase 0 (foundation) is built; Phase 1 is next
-([docs/06-roadmap.md](docs/06-roadmap.md)).
+[README.md](README.md) and [docs/](docs/). Phase 0 (foundation) and Phase 1 work packages 1–11
+(intake and screening) are built; what's left is tracked in [docs/06-roadmap.md](docs/06-roadmap.md).
 
 ## Commands
 
@@ -38,10 +38,23 @@ local Docker stack is optional and is what the database tests run against.
 - **Server Actions:** authenticate → authorize → validate with Zod → one transaction (write + event)
   → enqueue the Inngest event → revalidate. Pure logic belongs in `features/*/domain.ts` with tests.
 - **Inngest events carry IDs only.** Look personal data up inside the step that uses it, so it never
-  lands in Inngest's stored payloads or step results.
+  lands in Inngest's stored payloads or step results. Event rows (`recordEvent`) carry IDs and codes
+  only too: they outlive the retention purge.
+- **Events written as a user are staff events.** RLS lets a signed-in user append only
+  `actor: "staff"` events with their own id; `system` and `candidate` events come from server code
+  on `getAdminDb()` (pipeline steps, candidate endpoints).
+- **Candidate-facing code never trusts what a repeat entry says.** The same email is the same
+  candidate, but a repeat entry neither changes stored details or answers nor reveals the
+  personal-page link (it is emailed). Keep it that way: anyone can type someone else's address.
+- **The AI proposes; code decides.** Verdicts come from `decide()` (`src/features/screening/domain.ts`);
+  anything unusual (injection, unverified quotes, low legibility, AI failure, no documents) goes to
+  "needs review". Manual decisions are never overwritten by re-screening.
 - **No personal data in logs or Sentry.** `src/lib/sentry.ts` scrubs emails and phone numbers.
 - **UI text** lives in `src/messages/ja.json` (keys are type-checked). Write original Japanese copy;
   never reuse lista-hr.com wording or assets ([docs/01 §11](docs/01-reference-site-analysis.md#11-originality-rules-for-mask0)).
+  Keys can't contain dots (next-intl nests on them). Each route group sends only its namespaces to
+  the browser (`clientMessages(…)` in its layout): add a namespace there when a Client Component
+  in that group starts using one.
 - Server Components can't pass functions to Client Components, icon components included: pass an
   element (`icon={<SomeIcon />}`).
 

@@ -32,9 +32,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      # Pinned to the CLI version used locally: newer CLIs renamed [inbucket] in config.toml to
+      # [local_smtp] and reject the old name. Upgrade both together.
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.101.0
       # Starts Postgres only and applies supabase/migrations and seed.sql.
       - run: supabase db start
       - uses: pnpm/action-setup@v4
