@@ -15,11 +15,8 @@ import { sendEventBestEffort } from "@/server/jobs/send";
 import { createSignedDownload, createSignedUpload } from "@/server/storage";
 import type { Verdict } from "./domain";
 import { getScreeningDetail, type ScreeningDetail } from "./queries";
-import {
-  afterSchedulingChange,
-  closeOpenScheduling,
-  issueInvitation,
-} from "@/features/interviews/server";
+import { inviteAfterPass } from "@/features/ai-interview/server";
+import { afterSchedulingChange, closeOpenScheduling } from "@/features/interviews/server";
 import { stateForVerdict } from "./state";
 
 const path = (ctx: MemberCtx) => `/app/${ctx.orgSlug}/${ctx.clientSlug}`;
@@ -114,10 +111,11 @@ export async function decideAction(
       type: "screening.decided",
       payload: { verdict, decision },
     });
-    // A pass invites the candidate to book; anything else closes what was open (docs/02 M7).
+    // A pass invites the candidate to book, or to the job's AI interview; anything else closes
+    // what was open (docs/02 M7, M12-1).
     const passed = verdict === "pass" || verdict === "manual_pass";
-    const invitationId = passed
-      ? await issueInvitation(tx, {
+    const invited = passed
+      ? await inviteAfterPass(tx, {
           orgId: ctx.orgId,
           clientId: ctx.clientId,
           applicationId,
@@ -129,7 +127,8 @@ export async function decideAction(
     const canceledInterviews = passed ? [] : await closeOpenScheduling(tx, applicationId);
     return {
       status: "ok" as const,
-      invitationId,
+      invitationId: invited?.invitationId ?? null,
+      aiSessionId: invited?.aiSessionId ?? null,
       canceledInterviews,
       rejected: verdict === "manual_fail" || verdict === "fail",
     };
@@ -138,6 +137,7 @@ export async function decideAction(
   await afterSchedulingChange({
     orgId: ctx.orgId,
     invitationId: result.invitationId,
+    aiSessionId: result.aiSessionId,
     canceledInterviews: result.canceledInterviews,
     rejectedApplications: result.rejected ? [applicationId] : [],
   });

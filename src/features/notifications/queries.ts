@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, desc, eq, gt, gte, lt, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, lt, or, sql } from "drizzle-orm";
 import { addDays, jstDateKey, jstInstant } from "@/features/scheduling/slots";
 import type { MemberCtx } from "@/server/auth/session";
 import { withRls } from "@/server/db/rls";
@@ -21,7 +21,9 @@ export type NotificationKind =
   | "scheduled"
   | "tomorrow"
   | "reply"
-  | "assigned";
+  | "assigned"
+  | "aiInterview"
+  | "aiHuman";
 
 export type NotificationItem = {
   kind: NotificationKind;
@@ -32,6 +34,8 @@ export type NotificationItem = {
   at: string;
   /** For "tomorrow" and "assigned": the interview to open. */
   interviewId?: string;
+  /** For the AI interview kinds: the session to open. */
+  sessionId?: string;
   unread: boolean;
 };
 
@@ -43,6 +47,10 @@ const EVENT_KINDS: Record<string, NotificationKind> = {
   "interview.scheduled": "scheduled",
   "message.received": "reply",
   "interview.assigned": "assigned",
+  "ai_interview.scored": "aiInterview",
+  "ai_interview.expired": "aiInterview",
+  "ai_interview.scoring_failed": "aiInterview",
+  "ai_interview.aborted": "aiHuman",
 };
 
 /**
@@ -95,6 +103,12 @@ export async function getNotifications(
               eq(events.type, "booking.unmatched"),
               eq(events.type, "interview.scheduled"),
               eq(events.type, "message.received"),
+              inArray(events.type, [
+                "ai_interview.scored",
+                "ai_interview.expired",
+                "ai_interview.scoring_failed",
+                "ai_interview.aborted",
+              ]),
               // Being made an interviewer of an interview.
               and(
                 eq(events.type, "interview.assigned"),
@@ -143,6 +157,7 @@ export async function getNotifications(
       ...rows.map((r) => ({
         kind: EVENT_KINDS[r.type] ?? ("review" as const),
         interviewId: (r.payload as { interviewId?: string }).interviewId,
+        sessionId: (r.payload as { sessionId?: string }).sessionId,
         applicationId: r.applicationId,
         jobId: r.jobId,
         name: r.name,

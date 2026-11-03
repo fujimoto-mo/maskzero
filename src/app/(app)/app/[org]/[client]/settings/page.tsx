@@ -26,6 +26,7 @@ import {
   listMembers,
 } from "@/features/settings/queries";
 import { EmailSettings } from "@/features/messaging/components/email-settings";
+import { AI_FEATURE } from "@/features/ai-interview/domain";
 import { listClientOptions } from "@/features/clients/queries";
 import { getMfaState } from "@/server/auth/mfa";
 import { PlanUsage } from "@/features/billing/components/plan-usage";
@@ -130,6 +131,7 @@ export default async function SettingsPage({
           target={target}
           scope={emailScope}
           agency={ctx.orgKind === "agency" ? { clientName: ctx.clientName } : null}
+          aiInterview={ctx.featureFlags.includes(AI_FEATURE)}
           {...await getMessageSettings(ctx, emailScope)}
         />
       ) : null}

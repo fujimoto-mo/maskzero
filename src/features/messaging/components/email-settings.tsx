@@ -58,8 +58,9 @@ const SAMPLE: MergeValues = {
   concerns: renderConcerns([{ label: "服装", answer: "私服でお越しください。" }]),
 };
 
-const GROUPS: { key: "invite" | "interview" | "result" | "pool"; triggers: Trigger[] }[] = [
+const GROUPS: { key: "invite" | "ai" | "interview" | "result" | "pool"; triggers: Trigger[] }[] = [
   { key: "invite", triggers: ["pass", "follow_up", "next_round"] },
+  { key: "ai", triggers: ["ai_invite", "ai_remind"] },
   {
     key: "interview",
     triggers: [
@@ -86,6 +87,7 @@ export function EmailSettings({
   customMessages,
   scope,
   agency,
+  aiInterview = false,
 }: {
   target: Target;
   testMode: boolean;
@@ -94,6 +96,8 @@ export function EmailSettings({
   scope: TemplateScope;
   /** For agencies: the current client's name, which can have its own wording. */
   agency: { clientName: string } | null;
+  /** The AI interviewer's emails show only where the feature is on. */
+  aiInterview?: boolean;
 }) {
   const t = useTranslations("Settings.email");
   const [pending, startTransition] = useTransition();
@@ -149,26 +153,28 @@ export function EmailSettings({
         </CardContent>
       </Card>
 
-      {GROUPS.filter((g) => g.key !== "pool" || agency).map((group) => (
-        <section key={group.key} aria-labelledby={`group-${group.key}`} className="grid gap-2">
-          <h2 id={`group-${group.key}`} className="text-sm font-semibold">
-            {t(`groups.${group.key}`)}
-          </h2>
-          <Accordion type="multiple" className="rounded-xl border bg-card px-4">
-            {group.triggers.map((trigger) => {
-              const template = templates.find((x) => x.trigger === trigger)!;
-              return (
-                <TemplateEditor
-                  key={`${scope}-${trigger}-${template.custom}`}
-                  target={target}
-                  scope={scope}
-                  template={template}
-                />
-              );
-            })}
-          </Accordion>
-        </section>
-      ))}
+      {GROUPS.filter((g) => (g.key !== "pool" || agency) && (g.key !== "ai" || aiInterview)).map(
+        (group) => (
+          <section key={group.key} aria-labelledby={`group-${group.key}`} className="grid gap-2">
+            <h2 id={`group-${group.key}`} className="text-sm font-semibold">
+              {t(`groups.${group.key}`)}
+            </h2>
+            <Accordion type="multiple" className="rounded-xl border bg-card px-4">
+              {group.triggers.map((trigger) => {
+                const template = templates.find((x) => x.trigger === trigger)!;
+                return (
+                  <TemplateEditor
+                    key={`${scope}-${trigger}-${template.custom}`}
+                    target={target}
+                    scope={scope}
+                    template={template}
+                  />
+                );
+              })}
+            </Accordion>
+          </section>
+        ),
+      )}
 
       <section aria-labelledby="group-custom" className="grid gap-2">
         <div className="flex flex-wrap items-center justify-between gap-2">

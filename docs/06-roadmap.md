@@ -175,6 +175,19 @@ Code status as of 2026-11-03: work packages 1 and 3 are built; 2 without the mee
 | 2 | Voice mode once text quality is proven | M12-2 |
 | 3 | Bias and quality review with recruiters; human review of every outcome; legal review | M12-4 |
 
+Code status as of 2026-11-03: work package 1 is built and the tooling for 3 is in place; 2 is not started. Everything sits behind the `ai_interviewer` feature flag on `organizations.feature_flags`, which only mask0 staff set (no grant for app users). Verified on the local Supabase stack with the Inngest dev server and the AI in fake mode.
+
+- [x] 1 · Per job (求人 → AI面接): round 1 becomes an AI interview with up to 10 questions, each with its evaluation guidance and 0–2 AI follow-ups, a time limit and a deadline in days; sample questions to start from
+- [x] 1 · A pass (AI or manual) invites to the AI interview instead of booking when the job uses one; the invitation email and reminders two days before and on the deadline day are new editable templates (設定 → メール → AI面接)
+- [x] 1 · The candidate takes it from the personal page: what the AI does and doesn't do, explicit consent (recorded as `ai_interview`), a chat with a countdown, follow-ups worded by the AI and capped by the question, and a human interview on request at any point (it becomes the usual booking invitation)
+- [x] 1 · The conversation is stored encrypted; an interview left open closes with what was answered when its time runs out, an unstarted one expires at the deadline and goes to staff (re-invite once, or invite to a person)
+- [x] 1 · Scoring after completion: per-question 1–5 scores with quotes checked against the answers, average and A–D band, summary; injection attempts and partial interviews are flagged; scoring failures leave the answers with a person. The application then waits for staff, who decide on the candidate as usual (next round, reject); an AI score never rejects anyone
+- [x] 3 · Blind review (AI面接 → ブラインド評価): recruiters rate scored interviews without the candidate's name or the AI's scores, then see the comparison; the AI面接 list shows band agreement against the 80 % target and the mean score gap
+- [x] 3 · Human review of every outcome: scored interviews wait for staff (`review_ai_interview`), with in-app and email notifications
+- [ ] 2 · Voice mode (needs speech-to-text and text-to-speech providers)
+- [ ] 3 · Bias review with recruiters on real pilot data, completion-rate tracking, and legal review (counsel); not code
+- [ ] Apply the migrations to the hosted project (`pnpm db:push`) and set the flag for pilot companies with SQL
+
 **Exit:** recruiters agree with the AI evaluation in ≥ 80 % of a blind sample, completion rates are acceptable, and counsel has signed off.
 
 ---

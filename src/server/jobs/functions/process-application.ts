@@ -11,6 +11,7 @@ import { inngest } from "../client";
 import {
   applicationRescreen,
   applicationSubmitted,
+  aiInterviewInvited,
   invitationCreated,
   staffNotify,
 } from "../events";
@@ -68,11 +69,18 @@ export const processApplication = inngest.createFunction(
         staffNotify.create({ applicationId, orgId, kind: "needs_review" }),
       );
     }
-    // A pass invites the candidate to book an interview (docs/02 M7-1).
+    // A pass invites the candidate to book an interview (docs/02 M7-1), or to the job's AI
+    // interview (M12-1).
     if ("invitationId" in result && result.invitationId) {
       await step.sendEvent(
         "send-invitation",
         invitationCreated.create({ invitationId: result.invitationId, orgId }),
+      );
+    }
+    if ("aiSessionId" in result && result.aiSessionId) {
+      await step.sendEvent(
+        "send-ai-invitation",
+        aiInterviewInvited.create({ sessionId: result.aiSessionId, orgId }),
       );
     }
     return result;

@@ -84,7 +84,8 @@
       "clients": "取引先",
       "analytics": "分析",
       "pool": "人材プール",
-      "day": "面接"
+      "day": "面接",
+      "aiInterviews": "AI面接"
     },
     "dashboard": {
       "title": "ダッシュボード",
@@ -161,7 +162,9 @@
       "unmatched": "日程の調整が必要：{name}さん",
       "tomorrow": "明日の面接：{name}さん",
       "reply": "返信が届きました：{name}さん",
-      "assigned": "面接官に割り当てられました：{name}さん"
+      "assigned": "面接官に割り当てられました：{name}さん",
+      "aiInterview": "AI面接の確認が必要：{name}さん",
+      "aiHuman": "人との面接の希望：{name}さん"
     },
     "search": {
       "button": "応募者を検索",
@@ -320,7 +323,8 @@
       "confirmArchive": "アーカイブする",
       "limit": "ご利用のプランで掲載できる求人の数に達しています。ほかの求人を停止するか、プランの変更をご相談ください。"
     },
-    "lengthHint": "{board}は{max}文字まで（いま{count}文字）"
+    "lengthHint": "{board}は{max}文字まで（いま{count}文字）",
+    "aiInterview": "AI面接"
   },
   "Intake": {
     "title": "応募受付URL",
@@ -522,7 +526,12 @@
     "cancel": "キャンセル",
     "withdrawn": "辞退を受け付けました。",
     "changeFailed": "変更できませんでした。担当者にご連絡ください。",
-    "consentLink": "同意内容の確認・ほかの求人のご案内の停止"
+    "consentLink": "同意内容の確認・ほかの求人のご案内の停止",
+    "aiTitle": "AI面接",
+    "aiInvited": "回答期限：{deadline}。ご都合のよいときにお受けください。",
+    "aiStarted": "途中まで回答しています。制限時間内に続きをお答えください。",
+    "aiGo": "AI面接に進む",
+    "aiContinue": "続きから回答する"
   },
   "Screening": {
     "title": "書類選考",
@@ -796,7 +805,10 @@
       "await_booking": "応募者が面接の日程を選ぶのを待つ",
       "decide_after_interview": "面接の結果を判断する",
       "confirm_booking": "応募者の希望の日時から面接日程を確定する",
-      "arrange_interview": "希望の枠が埋まっていたため、案内を再送して日時を選び直してもらう"
+      "arrange_interview": "希望の枠が埋まっていたため、案内を再送して日時を選び直してもらう",
+      "await_ai_interview": "応募者がAI面接を受けるのを待つ",
+      "review_ai_interview": "AI面接の回答と評価を確認し、次に進めるか判断する",
+      "ai_interview_expired": "AI面接の期限が過ぎたため、再案内するか人との面接を案内する"
     },
     "add": {
       "button": "応募者を追加",
@@ -903,7 +915,15 @@
       "transcript_uploaded": "面接の文字起こしが登録されました",
       "report_created": "AIの面接レポートができました",
       "decision_made": "面接後の判断が記録されました",
-      "decision_undone": "面接後の判断が取り消されました"
+      "decision_undone": "面接後の判断が取り消されました",
+      "ai_interview_invited": "AI面接を案内しました",
+      "ai_interview_started": "応募者がAI面接を始めました",
+      "ai_interview_completed": "AI面接の回答が終わりました",
+      "ai_interview_aborted": "応募者が人との面接を希望しました",
+      "ai_interview_expired": "AI面接の回答期限が過ぎました",
+      "ai_interview_scored": "AI面接の評価ができました（{band}）",
+      "ai_interview_scoring_failed": "AI面接の評価に失敗しました",
+      "ai_interview_reviewed": "AI面接のブラインド評価が登録されました"
     }
   },
   "Settings": {
@@ -1087,7 +1107,9 @@
         "no_show": "欠席時の日程再調整のお願い",
         "rejection": "不合格のご連絡",
         "cv_missing": "職務経歴書の提出のお願い",
-        "pool_suggestion": "人材プールからの求人のご紹介"
+        "pool_suggestion": "人材プールからの求人のご紹介",
+        "ai_invite": "AI面接のご案内",
+        "ai_remind": "AI面接の期限前のリマインド"
       },
       "enabled": "このメールを送る",
       "subject": "件名",
@@ -1106,7 +1128,9 @@
         "consent_url": "同意内容の確認・配信停止ページのURL",
         "concerns": "予約時に選ばれた「気になること」と回答",
         "entry_url": "紹介する求人の応募受付URL",
-        "recording_notice": "面接の録画・文字起こしのお知らせ（設定がオンのときだけ）"
+        "recording_notice": "面接の録画・文字起こしのお知らせ（設定がオンのときだけ）",
+        "interview_url": "AI面接のページのURL",
+        "deadline": "AI面接の回答期限"
       },
       "preview": "プレビュー",
       "save": "保存する",
@@ -1131,14 +1155,17 @@
         "no_show": "面接を「欠席」にしたあと、選んだタイミングで送ります。",
         "rejection": "不合格を確定したあと、選んだタイミングで送ります。",
         "cv_missing": "職務経歴書が必要な求人で、応募から選んだタイミングまでに提出がなければ送ります。",
-        "pool_suggestion": "人材プールから求人を紹介したときに送ります。"
+        "pool_suggestion": "人材プールから求人を紹介したときに送ります。",
+        "ai_invite": "AI面接がある求人で、書類選考を通過したときに送ります。",
+        "ai_remind": "AI面接の回答期限の2日前と当日の10時に、まだ終えていなければ送ります。"
       },
       "groups": {
         "invite": "日程のご案内",
         "interview": "面接",
         "result": "結果と書類",
         "pool": "人材プール",
-        "custom": "カスタムメール"
+        "custom": "カスタムメール",
+        "ai": "AI面接"
       },
       "timing": "送るタイミング",
       "timings": {
@@ -1199,6 +1226,7 @@
         "booking_request": "面接日程の確定や調整が必要なとき",
         "interview_confirmed": "面接日時が確定したとき",
         "candidate_reply": "応募者から返信が届いたとき",
+        "ai_interview": "AI面接の確認が必要なとき",
         "tomorrow_digest": "明日の面接のまとめ"
       },
       "hints": {
@@ -1207,6 +1235,7 @@
         "booking_request": "担当者の確定待ちの希望日時や、希望の枠が埋まっていたときに届きます。",
         "interview_confirmed": "応募者の予約や担当者の確定で、面接日時が決まったときに届きます。",
         "candidate_reply": "応募者がメールに返信したときに届きます（受信用アドレスの設定が必要です）。",
+        "ai_interview": "AI面接の評価ができたとき、回答期限が過ぎたとき、評価に失敗したときに届きます（AI面接を使う会社のみ）。",
         "tomorrow_digest": "毎日18時に、翌日の面接の一覧が1通にまとめて届きます。"
       },
       "save": "保存する",
@@ -1774,6 +1803,190 @@
       "noTranscript": "先に文字起こしを登録してください。",
       "notAllowed": "この応募は今の段階では判断できません。",
       "decided": "この面接はすでに判断済みです。"
+    }
+  },
+  "AiInterview": {
+    "none": "現在ご案内しているAI面接はありません。",
+    "back": "応募状況のページに戻る",
+    "intro": {
+      "title": "AI面接のご案内",
+      "lead": "{company}の最初の面接は、AIの面接官とのチャット形式で行います。",
+      "questions": "質問は{count}問です。回答の内容によって、AIが追加で質問することがあります。",
+      "time": "始めると{minutes}分の制限時間が始まります。時間内であれば、ページを閉じても続きから回答できます。",
+      "deadline": "回答期限：{deadline}",
+      "aboutTitle": "AIの使い方について",
+      "about": "AIは質問をし、採用担当者の参考になる評価をつけます。合否はAIだけでは決まりません。採用担当者がすべての回答を読んで判断します。",
+      "fairness": "家族構成や出身地、健康状態など、仕事に関係のないことは質問しません。もし話題にしても、評価には使いません。",
+      "data": "回答はこの応募の選考のためだけに使い、会社の定める保存期間が過ぎると削除されます。",
+      "humanNote": "人の面接官との面接を希望される場合は、下のリンクからお選びください。AI面接を受けないことで不利になることはありません。",
+      "consent": "上記の内容を確認し、AIによる面接と評価に同意します。",
+      "start": "AI面接を始める"
+    },
+    "chat": {
+      "label": "面接のやりとり",
+      "progress": "質問 {current} / {count}",
+      "remaining": "残り {time}",
+      "interviewer": "面接官",
+      "you": "あなた",
+      "thinking": "面接官が回答を確認しています…",
+      "answerLabel": "回答",
+      "placeholder": "回答を入力してください。改行もできます。",
+      "count": "{count} / {max}文字",
+      "send": "回答を送る",
+      "sending": "送信中…",
+      "timeUp": "制限時間になりました。入力中の回答を送ると、そこで終了します。"
+    },
+    "human": {
+      "button": "人の面接官との面接を希望する",
+      "title": "人の面接官との面接に切り替えますか？",
+      "body": "AI面接は終了し、面接の日程を選んでいただくご案内に変わります。途中までの回答は評価に使いません。",
+      "cancel": "AI面接を続ける",
+      "confirm": "切り替える"
+    },
+    "done": {
+      "thanks": {
+        "title": "ご回答ありがとうございました",
+        "body": "回答は採用担当者が確認し、今後の選考については担当者からご連絡します。"
+      },
+      "human": {
+        "title": "人の面接官との面接をご案内します",
+        "body": "面接の日程を選ぶページからご予約ください。同じ内容をメールでもお送りします。",
+        "book": "面接の日程を選ぶ"
+      },
+      "expired": {
+        "title": "回答期限が過ぎました",
+        "body": "AI面接の回答期限が過ぎたため、このページからは回答できません。今後のご案内は採用担当者からご連絡します。"
+      },
+      "closed": {
+        "title": "このAI面接は終了しました",
+        "body": "選考の状況は応募状況のページでご確認ください。"
+      }
+    },
+    "errors": {
+      "notOpen": "このAI面接は終了しているか、まだ始まっていません。ページを再読み込みしてください。",
+      "expired": "回答期限が過ぎているため、始められません。",
+      "tooLong": "回答は2000文字以内で入力してください。",
+      "empty": "回答を入力してください。",
+      "rateLimited": "短い時間に何度も送信されました。少し待ってからお試しください。",
+      "network": "送信できませんでした。電波の良い場所で、もう一度お試しください。"
+    }
+  },
+  "AiReview": {
+    "title": "AI面接",
+    "description": "AI面接の回答とAIの評価です。合否はAIでは決まりません。回答を読み、応募者の画面で次に進めるか判断してください。",
+    "back": "AI面接の一覧",
+    "empty": "まだAI面接はありません。求人の編集画面の「AI面接」から設定できます。",
+    "stats": {
+      "toReview": "確認待ち",
+      "agreement": "AIとの一致率（ブラインド評価）",
+      "agreementHint": "{count}件の評価から。目標は{target}%以上です。",
+      "gap": "平均点の差",
+      "gapHint": "ブラインド評価の平均点とAIの平均点の差です（5点満点）。"
+    },
+    "columns": {
+      "name": "応募者",
+      "job": "求人",
+      "status": "状況",
+      "band": "AIの評価",
+      "when": "日時"
+    },
+    "status": {
+      "invited": "案内済み",
+      "started": "回答中",
+      "completed": "評価中",
+      "scored": "評価済み",
+      "aborted": "終了",
+      "expired": "期限切れ"
+    },
+    "flags": {
+      "humanRequested": "人の面接を希望",
+      "scoringFailed": "評価に失敗"
+    },
+    "completedAt": "回答 {date}",
+    "deadlineAt": "期限 {date}",
+    "detail": {
+      "result": "AIの評価（参考）",
+      "aiNote": "AIの評価は判断の参考です。AIの評価だけで不合格にすることはありません。回答を読んで判断してください。",
+      "deadline": "回答期限",
+      "started": "開始",
+      "completed": "終了",
+      "attempt": "案内の回数",
+      "reviews": "ブラインド評価",
+      "decide": "応募者の画面で判断する",
+      "question": "質問 {n}",
+      "rubric": "評価の観点：{rubric}",
+      "noAnswer": "回答はありません。",
+      "followUp": "AIの追加質問",
+      "answer": "応募者の回答",
+      "score": "AIの評価：{score} / 5",
+      "unverified": "（回答の中に見つからない引用です）"
+    },
+    "flagNotes": {
+      "humanRequested": "応募者が人の面接官との面接を希望しました。AI面接の回答は評価していません。",
+      "partial": "制限時間か回答期限になったため、途中までの回答で終了しました。",
+      "injection": "回答にAIへの指示のような文があります。AIの評価をうのみにせず、回答を確認してください。",
+      "scoringFailed": "AIの評価に失敗しました。回答を読んで判断するか、評価をやり直してください。"
+    },
+    "actions": {
+      "reinvite": "AI面接を再度案内する",
+      "inviteHuman": "人の面接を案内する",
+      "rescore": "評価をやり直す",
+      "reinvited": "AI面接を再度案内しました",
+      "humanInvited": "面接の日程のご案内を送ります",
+      "rescoring": "評価をやり直しています。しばらくしてから再読み込みしてください",
+      "failed": "実行できませんでした。画面を再読み込みしてください。"
+    },
+    "blind": {
+      "open": "ブラインド評価",
+      "title": "ブラインド評価",
+      "description": "応募者の名前とAIの評価を伏せた回答を読み、質問ごとに1〜5で評価してください。保存すると、AIの評価と比べられます。",
+      "back": "AI面接の一覧",
+      "job": "求人：{job}",
+      "question": "質問 {n}",
+      "rubric": "評価の観点：{rubric}",
+      "followUp": "AIの追加質問",
+      "answer": "応募者の回答",
+      "noAnswer": "回答はありません。",
+      "yourScore": "あなたの評価（1〜5）",
+      "aiScore": "AIの評価：{score}",
+      "agree": "AIと同じ評価でした",
+      "disagree": "AIと評価が分かれました",
+      "compare": "あなた：{mine}（平均 {mineAverage}）／AI：{ai}（平均 {aiTotal}）",
+      "next": "次の回答へ",
+      "save": "評価を保存する",
+      "saving": "保存中…",
+      "failed": "保存できませんでした。",
+      "done": "いま評価できる回答はありません。"
+    },
+    "config": {
+      "pageTitle": "AI面接の設定",
+      "back": "求人の編集に戻る",
+      "title": "一次面接をAI面接にする",
+      "description": "書類選考を通過した応募者に、AIの面接官とのチャット形式の一次面接を案内します。応募者は人の面接官との面接も選べます。",
+      "enabled": "この求人でAI面接を使う",
+      "enabledHint": "オフのときは、これまでどおり面接の日程のご案内を送ります。",
+      "timeLimit": "制限時間（分）",
+      "deadlineDays": "回答期限（案内の何日後）",
+      "questionsTitle": "質問",
+      "questionsDescription": "{max}問まで。質問ごとに、評価の観点と、AIが追加で質問してよい回数を決めます。",
+      "empty": "まだ質問がありません。",
+      "useSamples": "質問の例を入れる",
+      "number": "質問 {n}",
+      "up": "上へ",
+      "down": "下へ",
+      "remove": "削除",
+      "question": "質問",
+      "rubric": "評価の観点",
+      "rubricPlaceholder": "例：役割・行動・結果が具体的に語られている。",
+      "followUps": "追加質問",
+      "followUpCount": "{n, plural, =0 {なし} other {#回まで}}",
+      "add": "質問を追加",
+      "fairness": "家族構成、出身地、思想・信条、健康状態など、仕事に関係のないことは質問に含めないでください。AIもこれらを質問せず、評価にも使いません。",
+      "needQuestions": "AI面接を使うには、質問を1問以上入れてください。",
+      "save": "保存する",
+      "saving": "保存中…",
+      "saved": "AI面接の設定を保存しました",
+      "invalid": "入力内容を確認してください（質問は空欄にできません）。"
     }
   }
 }

@@ -116,6 +116,9 @@ describe("RLS coverage", () => {
     "interview_transcripts",
     "interview_reports",
     "interview_decisions",
+    "ai_interview_configs",
+    "ai_interview_sessions",
+    "ai_interview_reviews",
   ])("gives the anon role no access to %s", async (table) => {
     const message = await rejection(
       admin.begin(async (tx) => {
@@ -875,6 +878,110 @@ describe("Phase 4: interviewers see only the interviews they run", () => {
       tx.select({ id: schema.applications.id }).from(schema.applications),
     );
     expect(apps.map((a) => a.id)).toEqual(expect.arrayContaining([mineApp, otherApp]));
+  });
+});
+
+describe("Phase 5: the AI interviewer stays with the client's editors", () => {
+  const iris = newUser("iris"); // interviewer in alice's org
+  let jobId = "";
+  let applicationId = "";
+  let sessionId = "";
+
+  beforeAll(async () => {
+    await admin`insert into auth.users (id, email, aud, role)
+                values (${iris.userId}, ${iris.email}, 'authenticated', 'authenticated')`;
+    await admin`insert into memberships (org_id, user_id, role)
+                values (${aliceOrg}, ${iris.userId}, 'interviewer')`;
+    [{ id: jobId }] = await admin<{ id: string }[]>`
+      insert into jobs (org_id, client_id, title) values (${aliceOrg}, ${aliceDefaultClient}, 'AI面接職')
+      returning id`;
+    const [{ id: candidateId }] = await admin<{ id: string }[]>`
+      insert into candidates (org_id, name) values (${aliceOrg}, 'AI 候補') returning id`;
+    [{ id: applicationId }] = await admin<{ id: string }[]>`
+      insert into applications (org_id, client_id, job_id, candidate_id, source, stage)
+      values (${aliceOrg}, ${aliceDefaultClient}, ${jobId}, ${candidateId}, 'manual', 'evaluation')
+      returning id`;
+    [{ id: sessionId }] = await admin<{ id: string }[]>`
+      insert into ai_interview_sessions (org_id, client_id, application_id, status, questions,
+                                         time_limit_minutes, deadline_at, total, band)
+      values (${aliceOrg}, ${aliceDefaultClient}, ${applicationId}, 'scored',
+              ${admin.json([{ id: "q1", text: "質問", rubric: "", followUps: 0 }])}, 30,
+              now() + interval '7 days', 3.5, 'B')
+      returning id`;
+  });
+
+  afterAll(async () => {
+    await admin`delete from auth.users where id = ${iris.userId}`;
+  });
+
+  const sessionIds = (user: User) =>
+    withRls(user, (tx) =>
+      tx.select({ id: schema.aiInterviewSessions.id }).from(schema.aiInterviewSessions),
+    ).then((rows) => rows.map((r) => r.id));
+
+  it("shows sessions to members of the client only, never to interviewers", async () => {
+    expect(await sessionIds(alice)).toContain(sessionId);
+    expect(await sessionIds(bob)).not.toContain(sessionId);
+    expect(await sessionIds(carol)).not.toContain(sessionId); // limited to the second client
+    expect(await sessionIds(iris)).toEqual([]);
+  });
+
+  it("lets editors configure their jobs, and nobody else", async () => {
+    const configure = (user: User, enabled: boolean) =>
+      withRls(user, (tx) =>
+        tx
+          .insert(schema.aiInterviewConfigs)
+          .values({ jobId, orgId: aliceOrg, clientId: aliceDefaultClient, enabled })
+          .onConflictDoUpdate({ target: schema.aiInterviewConfigs.jobId, set: { enabled } }),
+      );
+    await configure(alice, true);
+    expect(await rejection(configure(bob, false))).toMatch(/row-level security/);
+    expect(await rejection(configure(iris, false))).toMatch(/row-level security/);
+  });
+
+  it("keeps the AI's scores and the transcript out of staff hands for writing", async () => {
+    const message = await rejection(
+      withRls(alice, (tx) =>
+        tx
+          .update(schema.aiInterviewSessions)
+          .set({ band: "A" })
+          .where(eq(schema.aiInterviewSessions.id, sessionId)),
+      ),
+    );
+    expect(message).toMatch(/permission denied/);
+  });
+
+  it("records each reviewer's blind rating as their own", async () => {
+    const review = (user: User, reviewerId: string) =>
+      withRls(user, (tx) =>
+        tx.insert(schema.aiInterviewReviews).values({
+          orgId: aliceOrg,
+          clientId: aliceDefaultClient,
+          sessionId,
+          reviewerId,
+          scores: { q1: 4 },
+          band: "B",
+        }),
+      );
+    expect(await rejection(review(alice, carol.userId))).toMatch(/row-level security/);
+    expect(await rejection(review(iris, iris.userId))).toMatch(/row-level security/);
+    await review(alice, alice.userId);
+    const seen = await withRls(bob, (tx) =>
+      tx.select({ id: schema.aiInterviewReviews.id }).from(schema.aiInterviewReviews),
+    );
+    expect(seen).toEqual([]);
+  });
+
+  it("leaves the feature flag to mask0 staff", async () => {
+    const message = await rejection(
+      withRls(alice, (tx) =>
+        tx
+          .update(schema.organizations)
+          .set({ featureFlags: ["ai_interviewer"] })
+          .where(eq(schema.organizations.id, aliceOrg)),
+      ),
+    );
+    expect(message).toMatch(/permission denied/);
   });
 });
 

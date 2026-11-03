@@ -1,4 +1,5 @@
 import {
+  BotMessageSquareIcon,
   Building2Icon,
   BriefcaseBusinessIcon,
   CalendarCheckIcon,
@@ -24,6 +25,7 @@ import { SignOutButton } from "@/components/app-shell/sign-out-button";
 import { Wordmark } from "@/components/brand/wordmark";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
+import { AI_FEATURE } from "@/features/ai-interview/domain";
 import { listClientOptions } from "@/features/clients/queries";
 import { countUnreadReplies } from "@/features/inbound/queries";
 import { getNotifications } from "@/features/notifications/queries";
@@ -75,6 +77,11 @@ export default async function ClientLayout({
             <NavLink href={`${base}/interviews`} icon={<CalendarCheckIcon aria-hidden />}>
               {t("App.nav.interviews")}
             </NavLink>
+            {ctx.featureFlags.includes(AI_FEATURE) ? (
+              <NavLink href={`${base}/ai-interviews`} icon={<BotMessageSquareIcon aria-hidden />}>
+                {t("App.nav.aiInterviews")}
+              </NavLink>
+            ) : null}
           </>
         )}
         <NavLink href={`${base}/meetings`} icon={<MessagesSquareIcon aria-hidden />}>
