@@ -1,0 +1,390 @@
+[
+  {
+    "key": "sales-01",
+    "job": "sales",
+    "verdict": "pass",
+    "name": "青葉 美咲",
+    "kana": "あおば みさき",
+    "email": "applicant1@example.com",
+    "phone": "090-0000-1000",
+    "prefecture": "埼玉県",
+    "city": "さいたま市架空区ひばり野",
+    "answers": {
+      "start_timing": "すぐに"
+    },
+    "files": [
+      {
+        "kind": "resume",
+        "file": "sales-01-resume.pdf"
+      },
+      {
+        "kind": "cv",
+        "file": "sales-01-cv.pdf"
+      }
+    ],
+    "ai": [
+      {
+        "criterionId": "s_licence",
+        "value": "あり",
+        "match": "yes",
+        "evidence": "普通自動車第一種運転免許 取得"
+      },
+      {
+        "criterionId": "s_years",
+        "value": "10",
+        "match": "yes",
+        "evidence": "株式会社ルミナ事務機 入社（法人営業部）"
+      },
+      {
+        "criterionId": "s_b2b",
+        "value": null,
+        "match": "yes",
+        "evidence": "中小企業向けに複合機と業務ソフトの提案営業を担当（担当社数 約68社）"
+      },
+      {
+        "criterionId": "s_lead",
+        "value": null,
+        "match": "no",
+        "evidence": null
+      }
+    ]
+  },
+  {
+    "key": "care-02",
+    "job": "care",
+    "verdict": "check",
+    "name": "朝霧 大翔",
+    "kana": "あさぎり ひろと",
+    "email": "applicant2@example.com",
+    "phone": "090-0000-1001",
+    "prefecture": "東京都",
+    "city": "架空区みなと町",
+    "answers": {
+      "start_timing": "1か月以内"
+    },
+    "files": [
+      {
+        "kind": "resume",
+        "file": "care-02-resume.pdf"
+      },
+      {
+        "kind": "cv",
+        "file": "care-02-cv.pdf"
+      }
+    ],
+    "ai": [
+      {
+        "criterionId": "c_cert",
+        "value": "介護福祉士",
+        "match": "yes",
+        "evidence": "普通自動車第一種運転免許 取得"
+      },
+      {
+        "criterionId": "c_years",
+        "value": "15",
+        "match": "yes",
+        "evidence": "社会福祉法人ひだまり会 入社（特別養護老人ホーム）"
+      },
+      {
+        "criterionId": "c_night",
+        "value": null,
+        "match": "no",
+        "evidence": null
+      },
+      {
+        "criterionId": "c_dementia",
+        "value": null,
+        "match": "no",
+        "evidence": null
+      }
+    ]
+  },
+  {
+    "key": "sales-05",
+    "job": "sales",
+    "verdict": "check",
+    "name": "大波 湊",
+    "kana": "おおなみ みなと",
+    "email": "applicant5@example.com",
+    "phone": "090-0000-1004",
+    "prefecture": "福岡県",
+    "city": "福岡市架空区なぎさ通",
+    "answers": {
+      "start_timing": "1か月以内"
+    },
+    "files": [
+      {
+        "kind": "resume",
+        "file": "sales-05-resume.pdf"
+      }
+    ],
+    "ai": [
+      {
+        "criterionId": "s_licence",
+        "value": "あり",
+        "match": "yes",
+        "evidence": "普通自動車第一種運転免許 取得"
+      },
+      {
+        "criterionId": "s_years",
+        "value": "0",
+        "match": "yes",
+        "evidence": "株式会社カナリア不動産 入社（店舗販売部）"
+      },
+      {
+        "criterionId": "s_b2b",
+        "value": null,
+        "match": "partial",
+        "evidence": "店舗で一般のお客様への家電・住宅設備の販売と接客を担当"
+      },
+      {
+        "criterionId": "s_lead",
+        "value": null,
+        "match": "no",
+        "evidence": null
+      }
+    ]
+  },
+  {
+    "key": "sales-15",
+    "job": "sales",
+    "verdict": "pass",
+    "name": "七海 大翔",
+    "kana": "ななみ ひろと",
+    "email": "applicant15@example.com",
+    "phone": "090-0000-1014",
+    "prefecture": "福岡県",
+    "city": "福岡市架空区なぎさ通",
+    "answers": {
+      "start_timing": "3か月以内"
+    },
+    "files": [
+      {
+        "kind": "resume",
+        "file": "sales-15-resume.pdf"
+      }
+    ],
+    "ai": [
+      {
+        "criterionId": "s_licence",
+        "value": "あり",
+        "match": "yes",
+        "evidence": "普通自動車第一種運転免許 取得"
+      },
+      {
+        "criterionId": "s_years",
+        "value": "28",
+        "match": "yes",
+        "evidence": "株式会社ソラリス通信 入社（法人営業部）"
+      },
+      {
+        "criterionId": "s_b2b",
+        "value": null,
+        "match": "yes",
+        "evidence": "中小企業向けに複合機と業務ソフトの提案営業を担当（担当社数 約40社）"
+      },
+      {
+        "criterionId": "s_lead",
+        "value": null,
+        "match": "not_stated",
+        "evidence": null
+      }
+    ]
+  },
+  {
+    "key": "care-18",
+    "job": "care",
+    "verdict": "fail_pending",
+    "name": "星野 千尋",
+    "kana": "ほしの ちひろ",
+    "email": "applicant18@example.com",
+    "phone": "090-0000-1017",
+    "prefecture": "愛知県",
+    "city": "名古屋市架空区こもれび",
+    "answers": {
+      "start_timing": "3か月より先"
+    },
+    "files": [
+      {
+        "kind": "resume",
+        "file": "care-18-resume.pdf"
+      }
+    ],
+    "ai": [
+      {
+        "criterionId": "c_cert",
+        "value": "初任者研修",
+        "match": "yes",
+        "evidence": "普通自動車第一種運転免許 取得"
+      },
+      {
+        "criterionId": "c_years",
+        "value": "0",
+        "match": "yes",
+        "evidence": "株式会社トワイライト警備 入社（営業所）"
+      },
+      {
+        "criterionId": "c_night",
+        "value": null,
+        "match": "no",
+        "evidence": null
+      },
+      {
+        "criterionId": "c_dementia",
+        "value": null,
+        "match": "no",
+        "evidence": null
+      }
+    ]
+  },
+  {
+    "key": "care-22",
+    "job": "care",
+    "verdict": "pass",
+    "name": "朝霧 拓海",
+    "kana": "あさぎり たくみ",
+    "email": "applicant22@example.com",
+    "phone": "090-0000-1021",
+    "prefecture": "大阪府",
+    "city": "大阪市架空区しおさい町",
+    "answers": {
+      "start_timing": "すぐに"
+    },
+    "files": [
+      {
+        "kind": "resume",
+        "file": "care-22-resume.pdf"
+      },
+      {
+        "kind": "cv",
+        "file": "care-22-cv.pdf"
+      }
+    ],
+    "ai": [
+      {
+        "criterionId": "c_cert",
+        "value": "介護福祉士",
+        "match": "yes",
+        "evidence": "介護職員初任者研修 修了"
+      },
+      {
+        "criterionId": "c_years",
+        "value": "24",
+        "match": "yes",
+        "evidence": "医療法人さくら坂会 入社（特別養護老人ホーム）"
+      },
+      {
+        "criterionId": "c_night",
+        "value": null,
+        "match": "yes",
+        "evidence": "月5回の夜勤を担当（夜間の巡回、体位変換、急変時の連絡）"
+      },
+      {
+        "criterionId": "c_dementia",
+        "value": null,
+        "match": "no",
+        "evidence": null
+      }
+    ]
+  },
+  {
+    "key": "sales-31",
+    "job": "sales",
+    "verdict": "fail_pending",
+    "name": "白川 奈央",
+    "kana": "しらかわ なお",
+    "email": "applicant31@example.com",
+    "phone": "090-0000-1030",
+    "prefecture": "東京都",
+    "city": "架空区みなと町",
+    "answers": {
+      "start_timing": "すぐに"
+    },
+    "files": [
+      {
+        "kind": "resume",
+        "file": "sales-31-resume.pdf"
+      },
+      {
+        "kind": "cv",
+        "file": "sales-31-cv.pdf"
+      }
+    ],
+    "ai": [
+      {
+        "criterionId": "s_licence",
+        "value": "あり",
+        "match": "yes",
+        "evidence": "普通自動車第一種運転免許 取得"
+      },
+      {
+        "criterionId": "s_years",
+        "value": "0",
+        "match": "yes",
+        "evidence": "株式会社ヒイラギ物流 入社（総務部）"
+      },
+      {
+        "criterionId": "s_b2b",
+        "value": null,
+        "match": "no",
+        "evidence": "請求書の発行と入金確認、備品の発注管理"
+      },
+      {
+        "criterionId": "s_lead",
+        "value": null,
+        "match": "no",
+        "evidence": null
+      }
+    ]
+  },
+  {
+    "key": "care-52",
+    "job": "care",
+    "verdict": "pass",
+    "name": "鈴森 美咲",
+    "kana": "すずもり みさき",
+    "email": "applicant52@example.com",
+    "phone": "090-0000-1051",
+    "prefecture": "愛知県",
+    "city": "名古屋市架空区こもれび",
+    "answers": {
+      "start_timing": "すぐに"
+    },
+    "files": [
+      {
+        "kind": "resume",
+        "file": "care-52-resume.pdf"
+      },
+      {
+        "kind": "cv",
+        "file": "care-52-cv.pdf"
+      }
+    ],
+    "ai": [
+      {
+        "criterionId": "c_cert",
+        "value": "実務者研修",
+        "match": "yes",
+        "evidence": "普通自動車第一種運転免許 取得"
+      },
+      {
+        "criterionId": "c_years",
+        "value": "29",
+        "match": "yes",
+        "evidence": "社会福祉法人あさひ苑 入社（グループホーム（認知症対応型共同生活介護））"
+      },
+      {
+        "criterionId": "c_night",
+        "value": null,
+        "match": "yes",
+        "evidence": "月4回の夜勤を担当（夜間の巡回、体位変換、急変時の連絡）"
+      },
+      {
+        "criterionId": "c_dementia",
+        "value": null,
+        "match": "yes",
+        "evidence": "認知症の方の生活リズムに合わせた声かけと、ご家族への様子の共有"
+      }
+    ]
+  }
+]

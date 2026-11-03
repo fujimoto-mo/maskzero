@@ -2,7 +2,8 @@
 --
 -- LOCAL ONLY: never apply this to a hosted project (no `supabase db push --include-seed`). It
 -- creates a login whose password is published right here. `pnpm db:push` leaves it out.
--- The future public /demo sandbox (docs/02 M0-4) needs its own seed without a shared password.
+-- The public /demo doesn't use it: src/features/demo builds a sandbox per visitor, with a
+-- throwaway user and no password.
 --
 -- Demo login (LOCAL DEVELOPMENT ONLY):
 --   email:    demo@mask0.example

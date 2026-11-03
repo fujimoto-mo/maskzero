@@ -12,6 +12,8 @@ export type SessionUser = {
   email: string;
   /** "aal2" once the session passed the authenticator-app step (from the JWT). */
   aal?: "aal1" | "aal2";
+  /** A throwaway /demo user (app_metadata.demo, set only by server code). */
+  demo?: boolean;
 };
 
 export type MemberRole = (typeof memberships.$inferSelect)["role"];
@@ -29,6 +31,8 @@ export type MemberCtx = SessionUser & {
   clientScope: string[] | null;
   /** R&D features switched on for the org by mask0 staff, such as "ai_interviewer". */
   featureFlags: string[];
+  /** A /demo sandbox: deleted after a day, never emails anyone. */
+  demo: boolean;
 };
 
 /** Whether the user has a verified authenticator app (read from the session, no network call). */
@@ -51,6 +55,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     userId: claims.sub,
     email: typeof claims.email === "string" ? claims.email : "",
     aal: claims.aal === "aal2" ? "aal2" : "aal1",
+    demo: (claims.app_metadata as { demo?: unknown } | undefined)?.demo === true,
   };
 });
 
@@ -80,6 +85,7 @@ export const requireMember = cache(
           role: memberships.role,
           clientScope: memberships.clientIds,
           featureFlags: organizations.featureFlags,
+          demoExpiresAt: organizations.demoExpiresAt,
         })
         .from(memberships)
         .innerJoin(organizations, eq(organizations.id, memberships.orgId))
@@ -96,16 +102,19 @@ export const requireMember = cache(
     );
     if (!row) notFound();
     if (row.clientScope && !row.clientScope.includes(row.clientId)) notFound();
+    const { demoExpiresAt, ...member } = row;
+    const demo = demoExpiresAt !== null;
     // Owners and admins work only with a second factor, and so does anyone who set one up
-    // (docs/02 M1-6, docs/05 §11).
-    if (user.aal !== "aal2") {
+    // (docs/02 M1-6, docs/05 §11). Not in a /demo sandbox: it holds no real data and its admin is
+    // a throwaway user (only server code can make a company a sandbox).
+    if (user.aal !== "aal2" && !demo) {
       const admin = row.role === "owner" || row.role === "admin";
       if (admin || (await hasSecondFactor())) {
         const next = encodeURIComponent(`/app/${row.orgSlug}/${row.clientSlug}/dashboard`);
         redirect(`/mfa?next=${next}${admin ? "&required=1" : ""}`);
       }
     }
-    return { ...user, ...row };
+    return { ...user, ...member, demo };
   },
 );
 

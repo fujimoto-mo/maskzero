@@ -20,7 +20,10 @@
     "db:generate": "drizzle-kit generate",
     "db:new-sql": "drizzle-kit generate --custom",
     "env:local": "node scripts/write-env-local.mjs",
-    "inngest:dev": "npx --yes inngest-cli@1.49.0 dev -u http://localhost:3000/api/inngest --no-discovery"
+    "inngest:dev": "npx --yes inngest-cli@1.49.0 dev -u http://localhost:3000/api/inngest --no-discovery",
+    "eval": "tsx --conditions=react-server tests/ai-evals/run.ts",
+    "demo:files": "tsx --conditions=react-server scripts/demo-files.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0",
@@ -49,6 +52,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^22.20.5",
     "@types/react": "^19",
@@ -58,7 +62,9 @@
     "eslint-config-next": "16.4.3",
     "prettier": "^3.9.10",
     "prettier-plugin-tailwindcss": "^0.8.1",
+    "sharp": "^0.35.5",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^5.0.5"
   },

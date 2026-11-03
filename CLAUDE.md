@@ -3,9 +3,9 @@
 @AGENTS.md
 
 AI recruiting platform for Japanese recruitment agencies and in-house HR teams. Product and plan:
-[README.md](README.md) and [docs/](docs/). Phase 0 (foundation), Phase 1 work packages 1–11
-(intake and screening), Phase 2 (booking and scheduling), most of Phase 3 (automation,
-analytics, team, inbound mail, talent pool, plan limits), Phase 4 without the meeting bot and
+[README.md](README.md) and [docs/](docs/). Phase 0 (foundation), Phase 1 (intake and screening,
+including the AI eval set, `/demo` and Turnstile), Phase 2 (booking and scheduling), most of
+Phase 3 (automation, analytics, team, inbound mail, talent pool, plan limits), Phase 4 without the meeting bot and
 live assist (interview workspace, AI report) and Phase 5's text AI interviewer (behind the
 `ai_interviewer` feature flag) are built; what's left is tracked in
 [docs/06-roadmap.md](docs/06-roadmap.md).
@@ -28,6 +28,9 @@ local Docker stack is optional and is what the database tests run against.
 | `pnpm test:db` | RLS and tenant-isolation tests (`tests/db`) on the local stack or `TEST_DATABASE_URL`; they write to `auth.users`, so never point them at the hosted project |
 | `pnpm db:generate --name <name>` | Migration from changes in `src/server/db/schema` |
 | `pnpm db:new-sql --name <name>` | Empty migration for functions, policies, grants, triggers |
+| `pnpm test:e2e` | Playwright flows (`tests/e2e`) against the running local app with `pnpm inngest:dev` |
+| `pnpm eval` | AI evals (`tests/ai-evals`): live with `ANTHROPIC_API_KEY` (costs money), `AI_FAKE=1` for the harness |
+| `pnpm demo:files` | Rebuild the `/demo` applicants' documents from the eval generator |
 
 ## Rules
 
@@ -55,7 +58,13 @@ local Docker stack is optional and is what the database tests run against.
   on `hasFeature()` (`src/features/ai-interview/server.ts`).
 - **The AI proposes; code decides.** Verdicts come from `decide()` (`src/features/screening/domain.ts`);
   anything unusual (injection, unverified quotes, low legibility, AI failure, no documents) goes to
-  "needs review". Manual decisions are never overwritten by re-screening.
+  "needs review". Manual decisions are never overwritten by re-screening. The screening step itself
+  is `judgeApplication()` (`src/server/screening/judge.ts`), shared with the eval runner: change a
+  prompt or the model, then run `pnpm eval`.
+- **`/demo` sandboxes** (`organizations.demo_expires_at`, set only by `src/features/demo`) are
+  throwaway companies: they skip the second factor, never email anyone (`sendCandidateMessage()`
+  logs them as dry runs, member addresses are `.invalid`) and can't invite members. Anything new
+  that sends mail or reaches outside the app must check `ctx.demo` or the org's flag too.
 - **No personal data in logs or Sentry.** `src/lib/sentry.ts` scrubs emails and phone numbers.
 - **Interviews are booked only through `bookFirstFree()`** (`src/features/scheduling/server.ts`):
   it takes the calendar's advisory lock, and the `interviews_no_overlap` constraint rejects overlaps.

@@ -46,8 +46,16 @@ export function usageCostUsd(u: Usage): number {
   return cost / 1_000_000;
 }
 
+let usageSink: ((feature: string, usage: Usage) => void) | null = null;
+
+/** The AI eval runner counts usage itself, without a database: nothing is written while set. */
+export function sendAiUsageTo(sink: ((feature: string, usage: Usage) => void) | null): void {
+  usageSink = sink;
+}
+
 /** Meters every live call per org (docs/02 M13-4). */
 export async function recordAiUsage(orgId: string, feature: string, usage: Usage): Promise<void> {
+  if (usageSink) return usageSink(feature, usage);
   await getAdminDb()
     .insert(aiUsage)
     .values({

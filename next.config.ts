@@ -7,6 +7,10 @@ const withNextIntl = createNextIntlPlugin();
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
+  // The /demo sandbox uploads these as its applicants' documents (src/features/demo/build.ts).
+  outputFileTracingIncludes: {
+    "/api/demo": ["./src/features/demo/files/*.pdf"],
+  },
   turbopack: {
     rules: {
       "*.css": {

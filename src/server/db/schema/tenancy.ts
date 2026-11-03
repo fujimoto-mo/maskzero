@@ -50,10 +50,15 @@ export const organizations = pgTable(
       .array()
       .notNull()
       .default(sql`'{}'::text[]`),
+    /** Set on /demo sandboxes (docs/02 M0-4), only by server code: deleted with their user after this. */
+    demoExpiresAt: timestamp("demo_expires_at", { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => [
+    index("organizations_demo_expires_idx")
+      .on(t.demoExpiresAt)
+      .where(sql`${t.demoExpiresAt} is not null`),
     check("organizations_retention_range", sql`${t.docRetentionDays} between 30 and 730`),
     check("organizations_name_length", sql`char_length(${t.name}) between 1 and 100`),
   ],

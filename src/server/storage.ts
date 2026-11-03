@@ -1,23 +1,11 @@
 import "server-only";
-import { createClient } from "@supabase/supabase-js";
-import { getPublicEnv } from "@/lib/env";
+import { supabaseAdmin } from "@/server/supabase/admin";
 
 export type Bucket = "documents" | "job-images";
 
-let client: ReturnType<typeof createClient> | undefined;
-
-/**
- * Storage with the secret key, which bypasses storage policies. Our buckets have no policies at
- * all, so every access goes through server code that has already checked permissions.
- */
-function storageAdmin() {
-  const key = process.env.SUPABASE_SECRET_KEY;
-  if (!key) throw new Error("SUPABASE_SECRET_KEY is not set (see .env.example).");
-  client ??= createClient(getPublicEnv().supabaseUrl, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  return client.storage;
-}
+/** Our buckets have no storage policies at all: every access goes through server code that has
+ * already checked permissions. */
+const storageAdmin = () => supabaseAdmin().storage;
 
 /** A one-time URL the browser uploads one file to, directly (no file passes through our functions). */
 export async function createSignedUpload(bucket: Bucket, path: string) {
@@ -39,6 +27,19 @@ export async function createSignedDownload(path: string, fileName: string): Prom
     .createSignedUrl(path, 300, { download: fileName });
   if (error) throw new Error(`Storage: ${error.message}`);
   return data.signedUrl;
+}
+
+/** Server-side upload, for files the app creates itself (the /demo sandbox). */
+export async function uploadObject(
+  bucket: Bucket,
+  path: string,
+  data: Buffer,
+  contentType: string,
+) {
+  const { error } = await storageAdmin()
+    .from(bucket)
+    .upload(path, data, { contentType, upsert: true });
+  if (error) throw new Error(`Storage: ${error.message}`);
 }
 
 export function publicUrl(bucket: Bucket, path: string): string {

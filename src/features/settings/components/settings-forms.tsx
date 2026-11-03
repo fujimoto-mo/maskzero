@@ -246,7 +246,13 @@ export function MembersPanel({
         clientIds: inviteScope.length > 0 ? inviteScope : null,
       });
       if (!result.ok) {
-        toast.error(result.error === "member" ? t("alreadyMember") : t("invalid"));
+        toast.error(
+          result.error === "member"
+            ? t("alreadyMember")
+            : result.error === "demo"
+              ? t("demoNoInvites")
+              : t("invalid"),
+        );
         return;
       }
       setLink(result.link);

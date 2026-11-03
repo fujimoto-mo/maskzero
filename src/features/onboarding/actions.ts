@@ -21,6 +21,7 @@ export async function createOrganizationAction(
   formData: FormData,
 ): Promise<OnboardingFormState> {
   const user = await requireUser();
+  if (user.demo) redirect("/demo");
   const t = await getTranslations("Onboarding.errors");
   const values = {
     companyName: String(formData.get("companyName") ?? ""),

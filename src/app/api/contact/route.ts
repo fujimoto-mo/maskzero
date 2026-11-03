@@ -6,6 +6,7 @@ import { getAdminDb } from "@/server/db/admin";
 import { contactInquiries } from "@/server/db/schema";
 import { sendEmail } from "@/server/email/send";
 import { clientIpHash, withinRateLimit } from "@/server/rate-limit";
+import { passesTurnstile } from "@/server/turnstile";
 
 // Submissions faster than this are scripted.
 const MIN_ELAPSED_MS = 3000;
@@ -39,6 +40,7 @@ export async function POST(request: Request) {
       consent: z.literal(true, t("consentRequired")),
       website: z.string().max(200),
       elapsedMs: z.number().int().min(0),
+      turnstileToken: z.string().max(2048).optional(),
     })
     .superRefine((v, ctx) => {
       const valid =
@@ -59,6 +61,9 @@ export async function POST(request: Request) {
   const form = parsed.data;
   // Bots get the same answer as people, and nothing is stored.
   if (form.website || form.elapsedMs < MIN_ELAPSED_MS) return NextResponse.json({ ok: true });
+  if (!(await passesTurnstile(form.turnstileToken, "contact"))) {
+    return NextResponse.json({ fields: { form: t("challenge") } }, { status: 400 });
+  }
 
   await getAdminDb()
     .insert(contactInquiries)

@@ -103,8 +103,10 @@ export async function inviteMemberAction(
   orgSlug: string,
   clientSlug: string,
   input: z.input<typeof inviteSchema>,
-): Promise<{ ok: true; link: string } | { ok: false; error: "invalid" | "member" }> {
+): Promise<{ ok: true; link: string } | { ok: false; error: "invalid" | "member" | "demo" }> {
   const ctx = await requireAdmin(orgSlug, clientSlug);
+  // A sandbox would otherwise send invitation emails anywhere for anyone.
+  if (ctx.demo) return { ok: false, error: "demo" };
   const parsed = inviteSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
   const email = normalizeEmail(parsed.data.email);

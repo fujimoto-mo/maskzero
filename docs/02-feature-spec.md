@@ -24,7 +24,7 @@ Reference details for every screen are in [01-reference-site-analysis.md](01-ref
 | M0-1 | Landing page with the section structure in [01 §3.1](01-reference-site-analysis.md#31-sections), in original mask0 copy and visuals |
 | M0-2 | Contact form with two modes (download the guide / consult). Fields: company\*, name\*, email\*, phone, inquiry type\*, message (≤ 3,000), privacy consent\* with a link to `/privacy`. Zod validation on both sides, honeypot + Cloudflare Turnstile + rate limit (429), stored in `contact_inquiries`, notification email to sales, auto-reply to the sender. Download mode reveals the guide link after submit |
 | M0-3 | `/privacy`, `/terms`, `/security`, `/company` pages |
-| M0-4 | `/demo`: the **real app** on a seeded sandbox company, reset nightly. An admin view and a candidate view (the sandbox's real entry page and personal page) |
+| M0-4 | `/demo`: the **real app** on a sandbox company of the visitor's own, with synthetic applicants, deleted after 24 hours. An admin view and a candidate view (the sandbox's real entry page and personal page). Sandboxes never send email |
 | M0-5 | SEO: metadata, absolute OG image, `sitemap.xml`, `robots.txt`, JSON-LD (`Organization`, `SoftwareApplication`, `FAQPage`) |
 | M0-6 | Floating CTA bar on phones; animations respect `prefers-reduced-motion` |
 
@@ -224,4 +224,4 @@ Reference details for every screen are in [01-reference-site-analysis.md](01-ref
 | M13-3 | Email and phone encrypted at rest with separate hashes for lookup; private storage; signed URLs that expire within minutes | P1 |
 | M13-4 | AI usage metered per org (tokens, cost) with plan limits | P1 metering, P3 limits |
 | M13-5 | Billing by clients / jobs / AI volume (invoice first, card later) | P3 |
-| M13-6 | Demo sandbox reset nightly | P1 |
+| M13-6 | Demo sandboxes deleted 24 hours after they are created (hourly job) | P1 |

@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 
 export default async function MarketingLayout({ children }: { children: ReactNode }) {
   return (
-    <NextIntlClientProvider messages={await clientMessages("Common", "Site", "Home")}>
+    <NextIntlClientProvider messages={await clientMessages("Common", "Site", "Home", "Demo")}>
       <SiteHeader />
       <main id="main" tabIndex={-1} className="flex-1 outline-none">
         {children}

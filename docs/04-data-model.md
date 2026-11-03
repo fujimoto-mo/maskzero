@@ -49,7 +49,7 @@ erDiagram
 
 | Table | Key columns |
 |-------|-------------|
-| `organizations` | id, slug (unique), name, kind (`agency` / `inhouse`), plan, sender_name, reply_to, entry_msg_template (must contain `{URL}`), doc_retention_days (30–730, default 180), inbound_local_part (unique), test_mode (log sends without delivering), feature_flags text[] (R&D features such as `ai_interviewer`; set by mask0 staff only), created_at |
+| `organizations` | id, slug (unique), name, kind (`agency` / `inhouse`), plan, sender_name, reply_to, entry_msg_template (must contain `{URL}`), doc_retention_days (30–730, default 180), inbound_local_part (unique), test_mode (log sends without delivering), feature_flags text[] (R&D features such as `ai_interviewer`; set by mask0 staff only), demo_expires_at (set only by server code on `/demo` sandboxes, plan `demo`; deleted with their user after this), created_at |
 | `profiles` | id (= `auth.users.id`), name, email, avatar_url, locale, last_login_at |
 | `memberships` | org_id, user_id, role (`owner` / `admin` / `recruiter` / `interviewer` / `viewer`), client_ids `uuid[]` (null = all clients), status (`active` / `invited` / `disabled`) · PK (org_id, user_id) |
 | `invitations` | id, org_id, email, role, client_ids, token_hash, invited_by, expires_at, accepted_at |

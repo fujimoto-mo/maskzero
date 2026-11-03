@@ -24,7 +24,7 @@ mask0.example/p/{token}     candidate personal page
 | Route | Page | Phase |
 |-------|------|-------|
 | `/` | Landing page (sections in [01 §3.1](01-reference-site-analysis.md#31-sections)), contact form at `#contact` | P1 |
-| `/demo` | Explains the demo; buttons open the sandbox company (admin view) or its real entry page (candidate view) | P1 |
+| `/demo` | Explains the demo; buttons create the visitor's sandbox and open it (admin view) or its real entry page (candidate view) | P1 |
 | `/privacy` | Privacy policy (個人情報の取扱い), including the AI vendor and cross-border transfer | P1 |
 | `/terms` | Terms of service | P1 |
 | `/security` | How data is protected | P1 |
@@ -114,6 +114,7 @@ Staff-side mutations use **Server Actions**. Route handlers are only for public 
 |-------|--------|---------|------------|
 | `/api/contact` | POST | Marketing contact form | Turnstile, honeypot, rate limit |
 | `/api/entry/[code]` | POST | Create the application; returns the personal token and signed upload URLs | Turnstile, honeypot, time check, rate limit |
+| `/api/demo` | POST | Create (or reopen) the visitor's `/demo` sandbox, sign them in as its user, return the URL to open | Turnstile, rate limit, cap on live sandboxes |
 | `/api/p/[token]/uploads` | POST | Signed upload URL for a résumé / CV | Token, rate limit |
 | `/api/p/[token]/submit` | POST | Mark uploads complete → emits `application.submitted` | Token |
 | `/api/p/[token]/booking` | POST | Submit preferred slots and concerns | Token (P2) |

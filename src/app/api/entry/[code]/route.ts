@@ -9,6 +9,7 @@ import { signReceipt } from "@/server/crypto/receipt";
 import { newToken } from "@/server/crypto/tokens";
 import { sendEmail } from "@/server/email/send";
 import { clientIpHash, withinRateLimit } from "@/server/rate-limit";
+import { passesTurnstile } from "@/server/turnstile";
 
 // Entries faster than this are scripted; people need longer to fill in the form.
 const MIN_ELAPSED_MS = 3000;
@@ -49,6 +50,9 @@ export async function POST(request: Request, { params }: RouteContext<"/api/entr
       uploads: [],
     });
   }
+  if (!(await passesTurnstile(parsed.data.turnstileToken, "entry"))) {
+    return NextResponse.json({ error: "challenge" }, { status: 400 });
+  }
 
   const entry = await loadEntry(code);
   if (!entry) return NextResponse.json({ error: "notFound" }, { status: 404 });
@@ -61,6 +65,14 @@ export async function POST(request: Request, { params }: RouteContext<"/api/entr
   }
 
   const result = await createEntryApplication(entry, parsed.data);
+  // A /demo sandbox emails no one: the link is on the done screen.
+  if (entry.view.demo) {
+    return NextResponse.json({
+      receipt: signReceipt(result.applicationId),
+      token: result.created ? result.token : null,
+      uploads: result.uploads,
+    });
+  }
   try {
     await sendEmail({
       to: parsed.data.email,

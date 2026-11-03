@@ -1,6 +1,7 @@
 import { aiInterviewLifecycle, aiInterviewScoring, aiInterviewTimeLimit } from "./ai-interview";
 import { decisionEffects, interviewReportJob } from "./interviewing";
 import { processApplication } from "./process-application";
+import { purgeDemoSandboxes } from "./purge-demo-sandboxes";
 import { purgeExpiredApplications } from "./purge-expired-applications";
 import { rescreenJob } from "./rescreen-job";
 import {
@@ -24,6 +25,7 @@ export const functions = [
   rescreenJob,
   sweepPendingApplications,
   purgeExpiredApplications,
+  purgeDemoSandboxes,
   invitationLifecycle,
   invitationResendEmail,
   interviewLifecycle,

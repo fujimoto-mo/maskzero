@@ -72,6 +72,7 @@ export async function sendCandidateMessage(input: {
       inboundLocalPart: organizations.inboundLocalPart,
       recordsInterviews: organizations.recordsInterviews,
       testMode: organizations.testMode,
+      demoExpiresAt: organizations.demoExpiresAt,
       clientName: clients.name,
     })
     .from(applications)
@@ -152,7 +153,8 @@ export async function sendCandidateMessage(input: {
     });
   };
 
-  if (app.testMode) {
+  // A /demo sandbox never emails candidates, whatever its test-mode setting says.
+  if (app.testMode || app.demoExpiresAt) {
     await log("dry_run");
     return "dry_run";
   }

@@ -6,6 +6,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { CopyButton } from "@/components/copy-button";
 import { FormAlert } from "@/components/form-alert";
 import { NativeSelect } from "@/components/native-select";
+import { Turnstile, turnstileSiteKey } from "@/components/turnstile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -73,6 +74,9 @@ export function EntryWizard({ entry }: { entry: EntryView }) {
   const [phase, setPhase] = useState<"idle" | "sending" | "uploading">("idle");
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  // Bumped after a failed submit: a Turnstile token works once, so the widget starts over.
+  const [attempt, setAttempt] = useState(0);
   // A repeat entry gets no link on screen; it is emailed to the address on file instead.
   const [done, setDone] = useState<{ portalUrl: string | null } | null>(null);
   const openedAt = useRef(0);
@@ -152,11 +156,14 @@ export function EntryWizard({ entry }: { entry: EntryView }) {
           otherJobsOptIn: form.otherJobsOptIn,
           website: form.website,
           elapsedMs: Date.now() - openedAt.current,
+          turnstileToken: turnstileToken ?? undefined,
         }),
       });
       if (!response.ok) {
         const body = (await response.json().catch(() => ({}))) as { error?: string };
-        const known = ["closed", "rateLimited", "notFound"];
+        setTurnstileToken(null);
+        setAttempt((a) => a + 1);
+        const known = ["closed", "rateLimited", "notFound", "challenge"];
         setSubmitError(
           t(
             `errors.${known.includes(body.error ?? "") ? body.error : "invalid"}` as "errors.invalid",
@@ -190,12 +197,14 @@ export function EntryWizard({ entry }: { entry: EntryView }) {
       requestAnimationFrame(() => top.current?.scrollIntoView({ block: "start" }));
     } catch {
       setSubmitError(t("errors.network"));
+      setTurnstileToken(null);
+      setAttempt((a) => a + 1);
     } finally {
       setPhase("idle");
     }
   }
 
-  if (done) return <Done portalUrl={done.portalUrl} />;
+  if (done) return <Done portalUrl={done.portalUrl} demo={entry.demo} />;
 
   if (!entry.open) {
     return (
@@ -211,6 +220,15 @@ export function EntryWizard({ entry }: { entry: EntryView }) {
 
   return (
     <div ref={top} className="grid scroll-mt-4 gap-6">
+      {entry.demo ? (
+        <section className="grid gap-1.5 rounded-xl border border-dashed bg-muted/40 p-4 text-sm">
+          <h2 className="font-medium">{t("demo.title")}</h2>
+          <p className="text-muted-foreground">{t("demo.body")}</p>
+          <a href="/demo/sample-resume.pdf" download className="font-medium text-primary underline">
+            {t("demo.sample")}
+          </a>
+        </section>
+      ) : null}
       <Steps current={step} />
 
       {step === 1 ? (
@@ -459,9 +477,15 @@ export function EntryWizard({ entry }: { entry: EntryView }) {
               </Label>
             ) : null}
           </div>
+          <Turnstile key={attempt} action="entry" onToken={setTurnstileToken} />
           <FormAlert error={submitError ?? undefined} />
           <div className="grid gap-3">
-            <Button size="lg" className="h-11" disabled={phase !== "idle"} onClick={submit}>
+            <Button
+              size="lg"
+              className="h-11"
+              disabled={phase !== "idle" || (turnstileSiteKey !== null && !turnstileToken)}
+              onClick={submit}
+            >
               {phase === "sending"
                 ? t("confirm.sending")
                 : phase === "uploading"
@@ -756,7 +780,7 @@ function Summary({
   );
 }
 
-function Done({ portalUrl }: { portalUrl: string | null }) {
+function Done({ portalUrl, demo }: { portalUrl: string | null; demo: boolean }) {
   const t = useTranslations("Entry.done");
   return (
     <div className="grid gap-5">
@@ -779,7 +803,8 @@ function Done({ portalUrl }: { portalUrl: string | null }) {
             <div>
               <CopyButton value={portalUrl} />
             </div>
-            <p className="text-xs text-muted-foreground">{t("emailed")}</p>
+            {/* A /demo sandbox sends no email. */}
+            {demo ? null : <p className="text-xs text-muted-foreground">{t("emailed")}</p>}
           </>
         ) : (
           <p className="text-sm">{t("repeat")}</p>
