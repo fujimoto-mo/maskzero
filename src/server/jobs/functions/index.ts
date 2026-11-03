@@ -1,3 +1,4 @@
+import { aiInterviewLifecycle, aiInterviewScoring, aiInterviewTimeLimit } from "./ai-interview";
 import { decisionEffects, interviewReportJob } from "./interviewing";
 import { processApplication } from "./process-application";
 import { purgeExpiredApplications } from "./purge-expired-applications";
@@ -35,4 +36,7 @@ export const functions = [
   tomorrowDigest,
   interviewReportJob,
   decisionEffects,
+  aiInterviewLifecycle,
+  aiInterviewTimeLimit,
+  aiInterviewScoring,
 ];

@@ -25,6 +25,7 @@ export default async function StaffAppLayout({ children }: { children: ReactNode
     "Messages",
     "Pool",
     "Workspace",
+    "AiReview",
   );
   return <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>;
 }

@@ -27,6 +27,7 @@ const SUBJECTS: Record<Exclude<EmailNotificationKind, "tomorrow_digest">, string
   booking_request: "面接日程の確定が必要です",
   interview_confirmed: "面接日時が確定しました",
   candidate_reply: "応募者から返信が届きました",
+  ai_interview: "AI面接の確認が必要です",
 };
 
 const PAGES: Record<Exclude<EmailNotificationKind, "tomorrow_digest">, string> = {
@@ -35,6 +36,7 @@ const PAGES: Record<Exclude<EmailNotificationKind, "tomorrow_digest">, string> =
   booking_request: "interviews?tab=action",
   interview_confirmed: "interviews?tab=scheduled",
   candidate_reply: "messages",
+  ai_interview: "ai-interviews",
 };
 
 /** Active members who can see the client and want this kind by email. */

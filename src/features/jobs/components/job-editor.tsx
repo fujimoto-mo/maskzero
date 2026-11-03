@@ -46,11 +46,14 @@ export function JobEditor({
   clientSlug,
   job,
   canEdit,
+  aiInterviewHref = null,
 }: {
   orgSlug: string;
   clientSlug: string;
   job: JobDetail;
   canEdit: boolean;
+  /** The job's AI interview settings, where the feature is on (docs/02 M12-1). */
+  aiInterviewHref?: string | null;
 }) {
   const t = useTranslations("Jobs");
   const [form, setForm] = useState<JobForm>(() => ({
@@ -158,6 +161,11 @@ export function JobEditor({
             </span>
           ) : null}
         </div>
+        {aiInterviewHref ? (
+          <Button asChild variant="outline">
+            <Link href={aiInterviewHref}>{t("aiInterview")}</Link>
+          </Button>
+        ) : null}
         {canEdit ? (
           <div className="flex items-center gap-2">
             <Button

@@ -27,7 +27,7 @@ import {
   screeningRuns,
   screeningSettings,
 } from "@/server/db/schema";
-import { issueInvitation } from "@/features/interviews/server";
+import { inviteAfterPass } from "@/features/ai-interview/server";
 import { recordEvent } from "@/server/events";
 import { sniffFileType } from "@/server/files";
 import { downloadObject, removeObjects } from "@/server/storage";
@@ -176,7 +176,12 @@ export async function readOne(
 const KIND_LABELS = { resume: "履歴書", cv: "職務経歴書", other: "書類" } as const;
 
 export type ScreenOutcome =
-  | { verdict: Verdict; score: number | null; invitationId: string | null }
+  | {
+      verdict: Verdict;
+      score: number | null;
+      invitationId: string | null;
+      aiSessionId: string | null;
+    }
   | { skipped: "notFound" | "closed" | "manual" | "advanced" };
 
 /**
@@ -288,7 +293,7 @@ export async function screenApplication(
   const decision = decide({ criteria, settings, answers, ai, documentText: masked, flags });
   const state = stateForVerdict(decision.verdict);
 
-  const invitationId = await db.transaction(async (tx) => {
+  const invited = await db.transaction(async (tx) => {
     const [run] = await tx
       .insert(screeningRuns)
       .values({
@@ -339,7 +344,8 @@ export async function screenApplication(
       },
     });
     if (decision.verdict !== "pass") return null;
-    return issueInvitation(tx, {
+    // The job's AI interview where it has one, otherwise booking with a person (M7-1, M12-1).
+    return inviteAfterPass(tx, {
       orgId,
       clientId: app.clientId,
       applicationId,
@@ -347,7 +353,12 @@ export async function screenApplication(
       actor: "system",
     });
   });
-  return { verdict: decision.verdict, score: decision.score, invitationId };
+  return {
+    verdict: decision.verdict,
+    score: decision.score,
+    invitationId: invited?.invitationId ?? null,
+    aiSessionId: invited?.aiSessionId ?? null,
+  };
 }
 
 /** After processing gave up: leave the application with a person instead of stuck in "pending". */

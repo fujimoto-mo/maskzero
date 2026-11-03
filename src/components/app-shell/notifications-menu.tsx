@@ -26,6 +26,8 @@ const MESSAGES = {
   tomorrow: "tomorrow",
   reply: "reply",
   assigned: "assigned",
+  aiInterview: "aiInterview",
+  aiHuman: "aiHuman",
 } as const satisfies Record<NotificationKind, string>;
 
 function hrefFor(base: string, item: NotificationItem) {
@@ -43,6 +45,10 @@ function hrefFor(base: string, item: NotificationItem) {
       return item.interviewId ? `${base}/meetings/${item.interviewId}` : `${base}/meetings`;
     case "reply":
       return `${base}/messages`;
+    case "aiInterview":
+      return item.sessionId ? `${base}/ai-interviews/${item.sessionId}` : `${base}/ai-interviews`;
+    case "aiHuman":
+      return `${base}/interviews`;
   }
 }
 

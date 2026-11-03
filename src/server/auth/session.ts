@@ -27,6 +27,8 @@ export type MemberCtx = SessionUser & {
   role: MemberRole;
   /** null = every client of the org. */
   clientScope: string[] | null;
+  /** R&D features switched on for the org by mask0 staff, such as "ai_interviewer". */
+  featureFlags: string[];
 };
 
 /** Whether the user has a verified authenticator app (read from the session, no network call). */
@@ -77,6 +79,7 @@ export const requireMember = cache(
           clientName: clients.name,
           role: memberships.role,
           clientScope: memberships.clientIds,
+          featureFlags: organizations.featureFlags,
         })
         .from(memberships)
         .innerJoin(organizations, eq(organizations.id, memberships.orgId))

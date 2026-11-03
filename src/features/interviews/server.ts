@@ -1,9 +1,19 @@
 import "server-only";
 import { and, eq, inArray } from "drizzle-orm";
 import type { Db, Tx } from "@/server/db/client";
-import { applications, interviewInvitations, interviews } from "@/server/db/schema";
+import {
+  aiInterviewSessions,
+  applications,
+  interviewInvitations,
+  interviews,
+} from "@/server/db/schema";
 import { recordEvent } from "@/server/events";
-import { applicationRejected, interviewChanged, invitationCreated } from "@/server/jobs/events";
+import {
+  aiInterviewInvited,
+  applicationRejected,
+  interviewChanged,
+  invitationCreated,
+} from "@/server/jobs/events";
 import { sendEventBestEffort } from "@/server/jobs/send";
 
 // Invitation and interview bookkeeping shared by the pipeline, staff actions and candidate pages.
@@ -56,7 +66,7 @@ export async function issueInvitation(
 
 /**
  * For an application leaving the process (rejected, withdrawn, back to review): open invitations
- * are canceled and scheduled interviews too. Returns the canceled interviews, whose reminders
+ * are canceled and scheduled interviews too, and an open AI interview ends. Returns the canceled interviews, whose reminders
  * must be stopped once the transaction commits.
  */
 export async function closeOpenScheduling(conn: Conn, applicationId: string): Promise<string[]> {
@@ -67,6 +77,15 @@ export async function closeOpenScheduling(conn: Conn, applicationId: string): Pr
       and(
         eq(interviewInvitations.applicationId, applicationId),
         inArray(interviewInvitations.status, ["sent", "opened"]),
+      ),
+    );
+  await conn
+    .update(aiInterviewSessions)
+    .set({ status: "aborted" })
+    .where(
+      and(
+        eq(aiInterviewSessions.applicationId, applicationId),
+        inArray(aiInterviewSessions.status, ["invited", "started"]),
       ),
     );
   const canceled = await conn
@@ -81,6 +100,7 @@ export async function closeOpenScheduling(conn: Conn, applicationId: string): Pr
 export async function afterSchedulingChange(input: {
   orgId: string;
   invitationId?: string | null;
+  aiSessionId?: string | null;
   canceledInterviews?: string[];
   rejectedApplications?: string[];
 }): Promise<void> {
@@ -89,6 +109,9 @@ export async function afterSchedulingChange(input: {
     await sendEventBestEffort(
       invitationCreated.create({ invitationId: input.invitationId, orgId }),
     );
+  }
+  if (input.aiSessionId) {
+    await sendEventBestEffort(aiInterviewInvited.create({ sessionId: input.aiSessionId, orgId }));
   }
   for (const interviewId of input.canceledInterviews ?? []) {
     await sendEventBestEffort(interviewChanged.create({ interviewId, orgId }));

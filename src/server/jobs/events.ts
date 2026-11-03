@@ -81,6 +81,21 @@ export const reportRequested = eventType("interview/report-requested", {
   schema: z.object({ interviewId: z.uuid(), orgId: z.uuid() }),
 });
 
+/** An AI interview was offered: the invitation email, reminders, then the deadline (M12-2, M12-5). */
+export const aiInterviewInvited = eventType("ai-interview/invited", {
+  schema: z.object({ sessionId: z.uuid(), orgId: z.uuid() }),
+});
+
+/** The candidate started the AI interview: it is closed when the time limit runs out. */
+export const aiInterviewStarted = eventType("ai-interview/started", {
+  schema: z.object({ sessionId: z.uuid(), orgId: z.uuid() }),
+});
+
+/** The AI interview ended (answered, or out of time): score it for people to review (M12-3). */
+export const aiInterviewCompleted = eventType("ai-interview/completed", {
+  schema: z.object({ sessionId: z.uuid(), orgId: z.uuid() }),
+});
+
 /** A decision after an interview: its emails go out once the undo window has passed (M11-4). */
 export const decisionMade = eventType("interview/decision-made", {
   schema: z.object({ decisionId: z.uuid(), orgId: z.uuid() }),

@@ -230,6 +230,14 @@ function TimelineEntry({ item }: { item: TimelineItem }) {
     "report_created",
     "decision_made",
     "decision_undone",
+    "ai_interview_invited",
+    "ai_interview_started",
+    "ai_interview_completed",
+    "ai_interview_aborted",
+    "ai_interview_expired",
+    "ai_interview_scored",
+    "ai_interview_scoring_failed",
+    "ai_interview_reviewed",
   ];
   const verdict =
     typeof item.payload.verdict === "string" ? verdicts(item.payload.verdict as Verdict) : "";
@@ -242,6 +250,7 @@ function TimelineEntry({ item }: { item: TimelineItem }) {
         verdict,
         change,
         round: String(item.payload.round ?? ""),
+        band: String(item.payload.band ?? ""),
       })
     : t("events.other", { type: item.type });
 

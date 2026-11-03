@@ -73,6 +73,18 @@ a WebVTT/SRT export (or `名前: 発言` lines) under 記録とレポート to t
 `AI_FAKE=1` the questions and the report are placeholders. A decision's emails go out 10 minutes
 after it, so keep `pnpm inngest:dev` running to see them.
 
+The AI interviewer (Phase 5) is behind a feature flag that only mask0 staff set. To try it
+locally, switch it on for the demo company:
+
+```bash
+docker exec supabase_db_maskzero psql -U postgres -c "update organizations set feature_flags = '{ai_interviewer}' where slug = 'demo'"
+```
+
+Then open a job and choose AI面接 to add questions and switch it on. Passing an applicant for that
+job sends them to the AI interview instead of booking; open it from their personal page
+(`/p/{token}/ai-interview`). With `AI_FAKE=1`, answers under 40 characters get a follow-up and
+scores follow answer length. Results and the blind review are under AI面接 in the sidebar.
+
 Inbound mail needs `INBOUND_DOMAIN` and `INBOUND_WEBHOOK_SECRET` in `.env.local`. Issue the address
 in 設定 → 受信, then post an email in Postmark's inbound format to
 `/api/webhooks/inbound-email` with Basic auth (any user name, the secret as the password). A

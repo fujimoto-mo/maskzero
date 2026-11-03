@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { AI_FEATURE } from "@/features/ai-interview/domain";
 import { JobEditor } from "@/features/jobs/components/job-editor";
 import { getJob } from "@/features/jobs/queries";
 import { isUuid } from "@/lib/utils";
@@ -22,6 +23,11 @@ export default async function JobPage({ params }: PageProps<"/app/[org]/[client]
       job={job}
       // Archived jobs keep their applicants' history and are read-only.
       canEdit={canEdit(ctx) && job.status !== "archived"}
+      aiInterviewHref={
+        ctx.featureFlags.includes(AI_FEATURE)
+          ? `/app/${ctx.orgSlug}/${ctx.clientSlug}/jobs/${job.id}/ai-interview`
+          : null
+      }
     />
   );
 }

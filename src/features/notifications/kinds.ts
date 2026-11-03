@@ -7,6 +7,7 @@ export const EMAIL_NOTIFICATION_KINDS = [
   "booking_request",
   "interview_confirmed",
   "candidate_reply",
+  "ai_interview",
   "tomorrow_digest",
 ] as const;
 export type EmailNotificationKind = (typeof EMAIL_NOTIFICATION_KINDS)[number];
@@ -18,4 +19,5 @@ export const EVENT_NOTIFICATION_KINDS = [
   "booking_request",
   "interview_confirmed",
   "candidate_reply",
+  "ai_interview",
 ] as const satisfies readonly EmailNotificationKind[];

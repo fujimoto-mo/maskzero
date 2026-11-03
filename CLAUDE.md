@@ -5,8 +5,9 @@
 AI recruiting platform for Japanese recruitment agencies and in-house HR teams. Product and plan:
 [README.md](README.md) and [docs/](docs/). Phase 0 (foundation), Phase 1 work packages 1–11
 (intake and screening), Phase 2 (booking and scheduling), most of Phase 3 (automation,
-analytics, team, inbound mail, talent pool, plan limits) and Phase 4 without the meeting bot and
-live assist (interview workspace, AI report) are built; what's left is tracked in
+analytics, team, inbound mail, talent pool, plan limits), Phase 4 without the meeting bot and
+live assist (interview workspace, AI report) and Phase 5's text AI interviewer (behind the
+`ai_interviewer` feature flag) are built; what's left is tracked in
 [docs/06-roadmap.md](docs/06-roadmap.md).
 
 ## Commands
@@ -49,6 +50,9 @@ local Docker stack is optional and is what the database tests run against.
 - **Candidate-facing code never trusts what a repeat entry says.** The same email is the same
   candidate, but a repeat entry neither changes stored details or answers nor reveals the
   personal-page link (it is emailed). Keep it that way: anyone can type someone else's address.
+- **Feature flags** live in `organizations.feature_flags` and are set by mask0 staff with SQL; app
+  users have no grant on the column. Gate pages and actions on `ctx.featureFlags`, and server code
+  on `hasFeature()` (`src/features/ai-interview/server.ts`).
 - **The AI proposes; code decides.** Verdicts come from `decide()` (`src/features/screening/domain.ts`);
   anything unusual (injection, unverified quotes, low legibility, AI failure, no documents) goes to
   "needs review". Manual decisions are never overwritten by re-screening.

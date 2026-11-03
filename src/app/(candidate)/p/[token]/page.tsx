@@ -6,6 +6,8 @@ import { connection } from "next/server";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { loadAiSession } from "@/features/ai-interview/candidate-server";
+import { formatDeadline } from "@/features/ai-interview/domain";
 import { PortalUploads } from "@/features/intake/components/portal-uploads";
 import { loadCandidateSchedule } from "@/features/interviews/candidate-server";
 import { InterviewControls } from "@/features/interviews/components/interview-controls";
@@ -29,11 +31,14 @@ export default async function PortalPage({ params }: PageProps<"/p/[token]">) {
   const portal = await loadPortal(token);
   if (!portal) notFound();
   const { view } = portal;
-  const [t, entry, schedule] = await Promise.all([
+  const [t, entry, schedule, ai] = await Promise.all([
     getTranslations("Portal"),
     getTranslations("Entry"),
     loadCandidateSchedule(portal.scope, new Date()),
+    loadAiSession(portal.scope, new Date()),
   ]);
+  const aiOpen =
+    schedule.outcome === "active" && (ai?.status === "invited" || ai?.status === "started");
   const interview = schedule.interview;
   const bookable =
     schedule.outcome === "active" &&
@@ -60,6 +65,26 @@ export default async function PortalPage({ params }: PageProps<"/p/[token]">) {
           <CardTitle>{t(`status.${view.status}`)}</CardTitle>
         </CardHeader>
       </Card>
+
+      {aiOpen ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("aiTitle")}</CardTitle>
+            <CardDescription>
+              {ai!.status === "started"
+                ? t("aiStarted")
+                : t("aiInvited", { deadline: formatDeadline(new Date(ai!.deadlineAt)) })}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild>
+              <Link href={`/p/${token}/ai-interview`}>
+                {ai!.status === "started" ? t("aiContinue") : t("aiGo")}
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {interview ? (
         <Card>

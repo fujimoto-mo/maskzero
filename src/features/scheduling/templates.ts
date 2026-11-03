@@ -15,6 +15,8 @@ export const TRIGGERS = [
   "rejection",
   "cv_missing",
   "pool_suggestion",
+  "ai_invite",
+  "ai_remind",
 ] as const;
 export type Trigger = (typeof TRIGGERS)[number];
 /** What the send log can show: a trigger above, or one of the company's custom emails. */
@@ -79,6 +81,8 @@ export const MERGE_FIELDS = [
   "concerns",
   "entry_url",
   "recording_notice",
+  "interview_url",
+  "deadline",
 ] as const;
 export type MergeField = (typeof MERGE_FIELDS)[number];
 export type MergeValues = Partial<Record<MergeField, string>>;
@@ -98,6 +102,8 @@ export const REQUIRED_FIELDS: Record<Trigger, MergeField[]> = {
   rejection: [],
   cv_missing: ["upload_url"],
   pool_suggestion: ["entry_url", "consent_url"],
+  ai_invite: ["interview_url", "deadline"],
+  ai_remind: ["interview_url", "deadline"],
 };
 
 export type Template = { subject: string; body: string };
@@ -283,6 +289,36 @@ export const DEFAULT_TEMPLATES: Record<Trigger, Template> = {
 
 今後このようなご案内が不要な場合は、下記のページから停止できます。
 {consent_url}${SIGNATURE}`,
+  },
+  ai_invite: {
+    subject: "【{company}】書類選考の結果とAI面接のご案内",
+    body: `{name} 様
+
+このたびは「{job}」にご応募いただき、ありがとうございます。
+{company} 採用担当です。
+
+書類選考の結果、次の選考に進んでいただきたく、ご連絡いたしました。
+最初の面接は、AIの面接官とのチャット形式で行います。ご都合のよいときに、下記のページからお受けください。
+
+{interview_url}
+
+回答期限：{deadline}
+
+AIの評価だけで合否が決まることはありません。回答は採用担当者が確認します。
+人の面接官との面接をご希望の場合も、上記のページからお選びいただけます。${SIGNATURE}`,
+  },
+  ai_remind: {
+    subject: "【{company}】AI面接の回答期限が近づいています",
+    body: `{name} 様
+
+{company} 採用担当です。
+「{job}」のAI面接の回答期限が近づいていますので、ご案内いたします。
+
+{interview_url}
+
+回答期限：{deadline}
+
+すでにお受けいただいている場合は、行き違いとなり失礼いたしました。${SIGNATURE}`,
   },
 };
 

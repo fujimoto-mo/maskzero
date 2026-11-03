@@ -34,6 +34,9 @@ export const messageTrigger = pgEnum("message_trigger", [
   "cv_missing",
   "pool_suggestion",
   "custom",
+  // Phase 5 (M12-2, M12-5)
+  "ai_invite",
+  "ai_remind",
 ]);
 /** When a configurable email goes out, relative to what started it (docs/02 M9-3). */
 export const messageTiming = pgEnum("message_timing", [

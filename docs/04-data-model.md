@@ -49,7 +49,7 @@ erDiagram
 
 | Table | Key columns |
 |-------|-------------|
-| `organizations` | id, slug (unique), name, kind (`agency` / `inhouse`), plan, sender_name, reply_to, entry_msg_template (must contain `{URL}`), doc_retention_days (30–730, default 180), inbound_local_part (unique), test_mode (log sends without delivering), created_at |
+| `organizations` | id, slug (unique), name, kind (`agency` / `inhouse`), plan, sender_name, reply_to, entry_msg_template (must contain `{URL}`), doc_retention_days (30–730, default 180), inbound_local_part (unique), test_mode (log sends without delivering), feature_flags text[] (R&D features such as `ai_interviewer`; set by mask0 staff only), created_at |
 | `profiles` | id (= `auth.users.id`), name, email, avatar_url, locale, last_login_at |
 | `memberships` | org_id, user_id, role (`owner` / `admin` / `recruiter` / `interviewer` / `viewer`), client_ids `uuid[]` (null = all clients), status (`active` / `invited` / `disabled`) · PK (org_id, user_id) |
 | `invitations` | id, org_id, email, role, client_ids, token_hash, invited_by, expires_at, accepted_at |
@@ -60,7 +60,7 @@ erDiagram
 
 | Table | Key columns |
 |-------|-------------|
-| `jobs` | id, org_id, client_id, status (`draft` / `published` / `stopped` / `archived`), title, display_title, posting_fields jsonb (validated by the shared Zod schema), posting_from, posting_to (null = open-ended), requires_cv, ai_interview_enabled (P5), created_by, created_at, updated_at |
+| `jobs` | id, org_id, client_id, status (`draft` / `published` / `stopped` / `archived`), title, display_title, posting_fields jsonb (validated by the shared Zod schema), posting_from, posting_to (null = open-ended), requires_cv (the AI interview lives in `ai_interview_configs`, P5), created_by, created_at, updated_at |
 | `job_images` | id, org_id, job_id, slot (1–6; 1 = main), storage_path, width, height, bytes, caption (≤ 70) · unique (job_id, slot) |
 | `entry_urls` | id, org_id, client_id, job_id, channel (seeded list or custom), code (unique, 6–8 chars), enabled, created_at · unique (job_id, channel) |
 | `candidates` | id, org_id, name, name_kana?, email_enc, email_hash, phone_enc, phone_hash, prefecture, city, created_at · unique (org_id, email_hash) |
@@ -93,7 +93,9 @@ erDiagram
 | `interview_transcripts` | interview_id (PK), provider, storage_path, segments jsonb `[{t, speaker, text}]`, language (P4) |
 | `interview_reports` | id, interview_id, kind (`ai` / `human`), author_id?, scores jsonb, total, summary, needs jsonb, recommendation, model, created_at (P4) |
 | `decisions` | id, org_id, application_id, interview_id?, decision (`pass` / `next_round` / `fail` / `withdrawn` / `offer` / `hired`), decided_by, note, effective_at (now + undo window), undone_at |
-| `ai_interview_sessions` | id, org_id, application_id, invitation_id, status (`invited` / `started` / `completed` / `aborted` / `scored`), started_at, completed_at, transcript jsonb, scores jsonb, total_score, band, model, rubric_version (P5) |
+| `ai_interview_configs` | job_id (PK), org_id, client_id, enabled, questions jsonb (id, text, rubric, followUps 0–2; up to 10), time_limit_minutes (10–90), deadline_days (2–14), updated_by, created_at, updated_at (P5) |
+| `ai_interview_sessions` | id, org_id, client_id, application_id, status (`invited` / `started` / `completed` / `scored` / `aborted` / `expired`), questions jsonb (snapshot at invitation), time_limit_minutes, deadline_at, started_at, completed_at, transcript_enc (encrypted turns), turn_count, current_question, follow_ups_used, scores jsonb (per question: score, comment, evidence with verified flag), total, band (A–D), summary, flags jsonb (injection, partial, humanRequested, scoringFailed), model, rubric_version, attempt, created_at, updated_at (P5) |
+| `ai_interview_reviews` | id, org_id, client_id, session_id, reviewer_id, scores jsonb (per question 1–5), band, created_at; unique per session and reviewer (P5 blind review) |
 
 **No double bookings**, even with concurrent auto-confirms:
 
@@ -227,7 +229,7 @@ stateDiagram-v2
 | `stage.changed` | system / staff | from, to, reason |
 | `invitation.sent` / `invitation.opened` / `booking.requested` | system / candidate | round, mode, slots |
 | `interview.scheduled` / `.rescheduled` / `.canceled` / `.done` / `.no_show` | system / staff / candidate | interview_id, starts_at |
-| `ai_interview.started` / `.completed` / `.aborted` / `.scored` | candidate / system | session_id, total_score, band |
+| `ai_interview.invited` / `.started` / `.completed` / `.aborted` / `.expired` / `.scored` / `.scoring_failed` / `.reviewed` | staff / candidate / system | sessionId; attempt, partial, reason, total, band or agrees where relevant |
 | `message.scheduled` / `.sent` / `.delivered` / `.bounced` / `.failed` / `.dry_run` | system | trigger, message_id, error |
 | `job_board.notified` | system | channel, job_id, applicant_name (P3) |
 | `report.created` | system | interview_id, total |

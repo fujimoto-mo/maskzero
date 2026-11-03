@@ -45,6 +45,11 @@ export const organizations = pgTable(
     testMode: boolean("test_mode").notNull().default(false),
     /** The company records and transcribes interviews; candidates are told and can decline (M11-5). */
     recordsInterviews: boolean("records_interviews").notNull().default(false),
+    /** Features in trial, switched on by mask0 staff (e.g. "ai_interviewer", docs/05 §12). */
+    featureFlags: text("feature_flags")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
