@@ -6,8 +6,16 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
 /** One click to stop (or restart) suggestions of other jobs (docs/02 M5-6). */
-export function ConsentToggle({ token, initial }: { token: string; initial: boolean }) {
-  const t = useTranslations("Consent");
+export function ConsentToggle({
+  token,
+  initial,
+  kind = "otherJobs",
+}: {
+  token: string;
+  initial: boolean;
+  kind?: "otherJobs" | "recording";
+}) {
+  const t = useTranslations(kind === "recording" ? "Consent.recording" : "Consent");
   const [on, setOn] = useState(initial);
   const [pending, startTransition] = useTransition();
 
@@ -16,7 +24,7 @@ export function ConsentToggle({ token, initial }: { token: string; initial: bool
       const response = await fetch(`/api/p/${token}/consent`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ otherJobs: next }),
+        body: JSON.stringify({ [kind]: next }),
       });
       if (!response.ok) {
         toast.error(t("failed"));

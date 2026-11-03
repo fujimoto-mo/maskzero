@@ -235,6 +235,15 @@ export const interviews = pgTable(
     location: text("location"),
     externalEventId: text("external_event_id"),
     status: interviewStatus("status").notNull().default("scheduled"),
+    /** Members who run this interview (docs/02 M1-4): interviewers see only their own. */
+    interviewerIds: uuid("interviewer_ids")
+      .array()
+      .notNull()
+      .default(sql`'{}'::uuid[]`),
+    /** What this round should find out (docs/02 M11-2). */
+    purpose: text("purpose"),
+    /** False when the candidate declined recording (docs/02 M11-5). */
+    recordingAllowed: boolean("recording_allowed").notNull().default(true),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

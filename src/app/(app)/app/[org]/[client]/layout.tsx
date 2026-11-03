@@ -8,6 +8,7 @@ import {
   LayoutDashboardIcon,
   LinkIcon,
   MailIcon,
+  MessagesSquareIcon,
   SettingsIcon,
   UserSearchIcon,
   UsersIcon,
@@ -38,6 +39,7 @@ export default async function ClientLayout({
   const { org, client } = await params;
   const ctx = await requireMember(org, client);
   const agency = ctx.orgKind === "agency";
+  const interviewer = ctx.role === "interviewer";
   const [t, notifications, clientOptions, unreadReplies] = await Promise.all([
     getTranslations(),
     getNotifications(ctx, new Date()),
@@ -58,35 +60,47 @@ export default async function ClientLayout({
         ) : null}
       </div>
       <nav aria-label={t("App.nav.mainMenu")} className="flex flex-col gap-1">
-        <NavLink href={`${base}/dashboard`} icon={<LayoutDashboardIcon aria-hidden />}>
-          {t("App.nav.dashboard")}
+        {/* Interviewers work only on the interviews they run (docs/02 M1-4). */}
+        {interviewer ? null : (
+          <>
+            <NavLink href={`${base}/dashboard`} icon={<LayoutDashboardIcon aria-hidden />}>
+              {t("App.nav.dashboard")}
+            </NavLink>
+            <NavLink href={`${base}/jobs`} icon={<BriefcaseBusinessIcon aria-hidden />}>
+              {t("App.nav.jobs")}
+            </NavLink>
+            <NavLink href={`${base}/screening`} icon={<FileCheckIcon aria-hidden />}>
+              {t("App.nav.screening")}
+            </NavLink>
+            <NavLink href={`${base}/interviews`} icon={<CalendarCheckIcon aria-hidden />}>
+              {t("App.nav.interviews")}
+            </NavLink>
+          </>
+        )}
+        <NavLink href={`${base}/meetings`} icon={<MessagesSquareIcon aria-hidden />}>
+          {t("App.nav.day")}
         </NavLink>
-        <NavLink href={`${base}/jobs`} icon={<BriefcaseBusinessIcon aria-hidden />}>
-          {t("App.nav.jobs")}
-        </NavLink>
-        <NavLink href={`${base}/screening`} icon={<FileCheckIcon aria-hidden />}>
-          {t("App.nav.screening")}
-        </NavLink>
-        <NavLink href={`${base}/interviews`} icon={<CalendarCheckIcon aria-hidden />}>
-          {t("App.nav.interviews")}
-        </NavLink>
-        <NavLink href={`${base}/candidates`} icon={<UsersIcon aria-hidden />}>
-          {t("App.nav.candidates")}
-        </NavLink>
-        {agency && canEdit(ctx) ? (
-          <NavLink href={`${base}/pool`} icon={<UserSearchIcon aria-hidden />}>
-            {t("App.nav.pool")}
-          </NavLink>
-        ) : null}
-        <NavLink href={`${base}/scheduling`} icon={<CalendarDaysIcon aria-hidden />}>
-          {t("App.nav.scheduling")}
-        </NavLink>
-        <NavLink href={`${base}/entry-urls`} icon={<LinkIcon aria-hidden />}>
-          {t("App.nav.entryUrls")}
-        </NavLink>
-        <NavLink href={`${base}/analytics`} icon={<ChartColumnIcon aria-hidden />}>
-          {t("App.nav.analytics")}
-        </NavLink>
+        {interviewer ? null : (
+          <>
+            <NavLink href={`${base}/candidates`} icon={<UsersIcon aria-hidden />}>
+              {t("App.nav.candidates")}
+            </NavLink>
+            {agency && canEdit(ctx) ? (
+              <NavLink href={`${base}/pool`} icon={<UserSearchIcon aria-hidden />}>
+                {t("App.nav.pool")}
+              </NavLink>
+            ) : null}
+            <NavLink href={`${base}/scheduling`} icon={<CalendarDaysIcon aria-hidden />}>
+              {t("App.nav.scheduling")}
+            </NavLink>
+            <NavLink href={`${base}/entry-urls`} icon={<LinkIcon aria-hidden />}>
+              {t("App.nav.entryUrls")}
+            </NavLink>
+            <NavLink href={`${base}/analytics`} icon={<ChartColumnIcon aria-hidden />}>
+              {t("App.nav.analytics")}
+            </NavLink>
+          </>
+        )}
         {agency && isAdmin(ctx) ? (
           <NavLink href={`${base}/clients`} icon={<Building2Icon aria-hidden />}>
             {t("App.nav.clients")}

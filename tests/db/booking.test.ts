@@ -10,6 +10,7 @@ import {
   submitBooking,
 } from "@/features/interviews/candidate-server";
 import { issueInvitation } from "@/features/interviews/server";
+import { loadConsents, setRecordingConsent } from "@/features/pool/consent-server";
 import { ensureCalendar } from "@/features/scheduling/server";
 import { getDb } from "@/server/db/client";
 
@@ -159,6 +160,31 @@ describe("booking", () => {
       expect(app).toEqual({ waiting_on: "staff", next_action: "confirm_booking" });
     } finally {
       await admin`update availability_rules set confirm_mode = 'auto' where calendar_id = ${calendarId}`;
+    }
+  });
+
+  it("keeps a candidate's no to recording on booked and later interviews", async () => {
+    await admin`update organizations set records_interviews = true where id = ${orgId}`;
+    try {
+      const scope = await invitedApplication();
+      expect((await book(scope, [slot("15:00")])).status).toBe("confirmed");
+      expect((await loadConsents(scope)).recording).toBe(true);
+
+      expect(await setRecordingConsent(scope, false)).toBe(true);
+      expect((await loadConsents(scope)).recording).toBe(false);
+      const [booked] = await admin<{ recording_allowed: boolean }[]>`
+        select recording_allowed from interviews where application_id = ${scope.applicationId}`;
+      expect(booked?.recording_allowed).toBe(false);
+
+      // Rebooked after a reschedule: the new interview starts without recording too.
+      await changeInterviewByCandidate(scope, "reschedule", now);
+      expect((await book(scope, [slot("15:00")])).status).toBe("confirmed");
+      const [rebooked] = await admin<{ recording_allowed: boolean }[]>`
+        select recording_allowed from interviews
+        where application_id = ${scope.applicationId} and status = 'scheduled'`;
+      expect(rebooked?.recording_allowed).toBe(false);
+    } finally {
+      await admin`update organizations set records_interviews = false where id = ${orgId}`;
     }
   });
 });

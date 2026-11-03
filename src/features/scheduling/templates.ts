@@ -78,6 +78,7 @@ export const MERGE_FIELDS = [
   "meeting_url",
   "concerns",
   "entry_url",
+  "recording_notice",
 ] as const;
 export type MergeField = (typeof MERGE_FIELDS)[number];
 export type MergeValues = Partial<Record<MergeField, string>>;
@@ -158,6 +159,8 @@ export const DEFAULT_TEMPLATES: Record<Trigger, Template> = {
 
 日程の変更やキャンセルは、下記のページから行えます。
 {portal_url}
+
+{recording_notice}
 
 当日はどうぞよろしくお願いいたします。${SIGNATURE}`,
   },

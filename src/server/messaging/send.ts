@@ -70,6 +70,7 @@ export async function sendCandidateMessage(input: {
       senderName: organizations.senderName,
       replyTo: organizations.replyTo,
       inboundLocalPart: organizations.inboundLocalPart,
+      recordsInterviews: organizations.recordsInterviews,
       testMode: organizations.testMode,
       clientName: clients.name,
     })
@@ -98,6 +99,10 @@ export async function sendCandidateMessage(input: {
     portal_url: portalUrl(token),
     upload_url: portalUrl(token),
     consent_url: consentUrl(token),
+    // Told before the interview, with a way to decline (docs/02 M11-5).
+    recording_notice: app.recordsInterviews
+      ? `面接の内容は、評価のために録画・文字起こしすることがあります。ご希望でない場合は、下記のページからお知らせください。\n${consentUrl(token)}`
+      : "",
   };
   let interview: typeof interviews.$inferSelect | undefined;
   if (input.interviewId) {

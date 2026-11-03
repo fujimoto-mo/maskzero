@@ -25,6 +25,7 @@ const MESSAGES = {
   scheduled: "scheduled",
   tomorrow: "tomorrow",
   reply: "reply",
+  assigned: "assigned",
 } as const satisfies Record<NotificationKind, string>;
 
 function hrefFor(base: string, item: NotificationItem) {
@@ -36,8 +37,10 @@ function hrefFor(base: string, item: NotificationItem) {
     case "unmatched":
       return `${base}/interviews?tab=action`;
     case "scheduled":
-    case "tomorrow":
       return `${base}/interviews?tab=scheduled`;
+    case "tomorrow":
+    case "assigned":
+      return item.interviewId ? `${base}/meetings/${item.interviewId}` : `${base}/meetings`;
     case "reply":
       return `${base}/messages`;
   }

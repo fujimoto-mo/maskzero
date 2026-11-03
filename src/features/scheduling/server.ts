@@ -1,11 +1,12 @@
 import "server-only";
-import { and, asc, eq, gte, isNull, lt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNull, lt, sql } from "drizzle-orm";
 import type { Db, Tx } from "@/server/db/client";
 import {
   applications,
   availabilityRules,
   bookingRequests,
   calendars,
+  consents,
   interviewInvitations,
   interviews,
   slotOverrides,
@@ -164,6 +165,7 @@ export async function bookFirstFree(
     sql`select pg_advisory_xact_lock(hashtextextended(${`interviews:${input.calendarId}`}, 0))`,
   );
   const free = await loadFreeSlots(tx, input.calendarId, input.rules, input.round, input.now);
+  const recordingAllowed = await recordingAllowedFor(tx, input.applicationId);
   for (const slot of input.preferred) {
     if (!isFree(slot, free)) continue;
     try {
@@ -182,6 +184,7 @@ export async function bookFirstFree(
             tool: input.rules.tool,
             meetingUrl: input.rules.tool === "url" ? input.rules.fixedMeetingUrl : null,
             location: input.rules.tool === "onsite" ? input.rules.onsiteAddress : null,
+            recordingAllowed,
           })
           .returning({ id: interviews.id });
         return row!.id;
@@ -193,6 +196,18 @@ export async function bookFirstFree(
     }
   }
   return null;
+}
+
+/** False when the candidate's latest word on recording is "no" (docs/02 M11-5). */
+async function recordingAllowedFor(tx: Tx, applicationId: string): Promise<boolean> {
+  const [row] = await tx
+    .select({ granted: consents.granted })
+    .from(consents)
+    .innerJoin(applications, eq(applications.candidateId, consents.candidateId))
+    .where(and(eq(applications.id, applicationId), eq(consents.kind, "recording")))
+    .orderBy(desc(consents.createdAt))
+    .limit(1);
+  return row?.granted ?? true;
 }
 
 /** After an interview is booked: invitation booked, application scheduled, event recorded. */

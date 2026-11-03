@@ -17,6 +17,7 @@ export type CompanySettings = {
   senderName: string | null;
   replyTo: string | null;
   retentionDays: number;
+  recordsInterviews: boolean;
 };
 
 export async function getCompanySettings(ctx: MemberCtx): Promise<CompanySettings> {
@@ -27,6 +28,7 @@ export async function getCompanySettings(ctx: MemberCtx): Promise<CompanySetting
         senderName: organizations.senderName,
         replyTo: organizations.replyTo,
         retentionDays: organizations.docRetentionDays,
+        recordsInterviews: organizations.recordsInterviews,
       })
       .from(organizations)
       .where(eq(organizations.id, ctx.orgId)),

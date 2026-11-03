@@ -68,6 +68,11 @@ The demo login is an owner, so the first sign-in asks for two-factor authenticat
 code with an authenticator app (or type the key shown under it). `pnpm db:reset` removes the
 factor again.
 
+Interviews open from 面接 (the day list) or from a booked row in 面接予定者. In the workspace, paste
+a WebVTT/SRT export (or `名前: 発言` lines) under 記録とレポート to try the AI report; with
+`AI_FAKE=1` the questions and the report are placeholders. A decision's emails go out 10 minutes
+after it, so keep `pnpm inngest:dev` running to see them.
+
 Inbound mail needs `INBOUND_DOMAIN` and `INBOUND_WEBHOOK_SECRET` in `.env.local`. Issue the address
 in 設定 → 受信, then post an email in Postmark's inbound format to
 `/api/webhooks/inbound-email` with Basic auth (any user name, the secret as the password). A

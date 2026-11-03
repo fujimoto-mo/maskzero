@@ -75,3 +75,13 @@ export const staffNotify = eventType("staff/notify", {
     kind: z.enum(EVENT_NOTIFICATION_KINDS),
   }),
 });
+
+/** Staff asked for the AI interview report: it is drafted from the uploaded transcript (M11-6). */
+export const reportRequested = eventType("interview/report-requested", {
+  schema: z.object({ interviewId: z.uuid(), orgId: z.uuid() }),
+});
+
+/** A decision after an interview: its emails go out once the undo window has passed (M11-4). */
+export const decisionMade = eventType("interview/decision-made", {
+  schema: z.object({ decisionId: z.uuid(), orgId: z.uuid() }),
+});

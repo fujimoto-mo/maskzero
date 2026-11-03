@@ -37,6 +37,7 @@ const companySchema = z.object({
   senderName: z.string().trim().max(50),
   replyTo: z.union([z.literal(""), z.email().max(254)]),
   retentionDays: z.number().int().min(30).max(730),
+  recordsInterviews: z.boolean().default(false),
 });
 
 /** Company name, email sender name, reply-to and document retention (docs/01 §5.7, M13-2). */
@@ -48,7 +49,7 @@ export async function saveCompanyAction(
   const ctx = await requireAdmin(orgSlug, clientSlug);
   const parsed = companySchema.safeParse(input);
   if (!parsed.success) return { ok: false };
-  const { name, senderName, replyTo, retentionDays } = parsed.data;
+  const { name, senderName, replyTo, retentionDays, recordsInterviews } = parsed.data;
   await withRls(ctx, async (tx) => {
     await tx
       .update(organizations)
@@ -57,6 +58,7 @@ export async function saveCompanyAction(
         senderName: senderName || null,
         replyTo: replyTo || null,
         docRetentionDays: retentionDays,
+        recordsInterviews,
       })
       .where(eq(organizations.id, ctx.orgId));
     await recordAudit(tx, {
@@ -65,7 +67,7 @@ export async function saveCompanyAction(
       action: "settings.company_updated",
       targetType: "organization",
       targetId: ctx.orgId,
-      meta: { retentionDays },
+      meta: { retentionDays, recordsInterviews },
     });
   });
   revalidatePath(`/app/${ctx.orgSlug}`, "layout");

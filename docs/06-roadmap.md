@@ -152,6 +152,17 @@ Code status as of 2026-11-03: work packages 1, 3–7 are built; 8 has plan limit
 | 3 | AI interview report | M11-6 |
 | 4 | Live assist | M11-7 |
 
+Code status as of 2026-11-03: work packages 1 and 3 are built; 2 without the meeting bot; 4 is not started. Verified on the local Supabase stack with the Inngest dev server and the AI in fake mode.
+
+- [x] 1 · Day list (`/meetings`) and interview workspace (`/meetings/[id]`): interviewer assignment, document highlights, the round's purpose, AI question suggestions (standard or deep) to pick, reorder, edit, add to and print; per-interviewer ratings on a five-criterion rubric with notes and a recommendation; decisions (offer, next round, fail, withdrawn) that move the application at once and hold every email for a 10-minute undo window
+- [x] 1 · Interviewers see only the interviews they run, enforced in RLS (completes M1-4); decisions stay with editors, interviewers give their recommendation
+- [x] 2 · Transcripts uploaded from the meeting tool (WebVTT, SRT, text), stored encrypted; a company setting announces recording in the confirmation email, and candidates can decline on their consent page, which blocks transcripts for their interviews
+- [ ] 2 · Meeting bot for Meet / Zoom / Teams and speech-to-text (needs a provider such as Recall.ai)
+- [x] 3 · AI report from the transcript: per-criterion score with quotes checked against the transcript and their times, summary, the candidate's needs, rank among the same job and round, shown next to the interviewers' ratings
+- [ ] 4 · Live assist (needs the meeting bot's live transcript)
+- [ ] The rubric is fixed in code (`src/features/interviews/rubric.ts`); per-job rubrics later
+- [ ] Apply the migrations to the hosted project (`pnpm db:push`)
+
 **Exit:** interviewers rate at least 80 % of AI reports "usable as is or with small edits" in pilot interviews.
 
 ---

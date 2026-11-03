@@ -128,7 +128,7 @@ export default async function DashboardPage({
                     {jstTime(new Date(item.startsAt))}〜{jstTime(new Date(item.endsAt))}
                   </span>
                   <Link
-                    href={`${base}/candidates?app=${item.applicationId}`}
+                    href={`${base}/meetings/${item.interviewId}`}
                     className="underline-offset-4 hover:underline"
                   >
                     {item.name}

@@ -111,6 +111,11 @@ describe("RLS coverage", () => {
     "entry_waits",
     "notification_settings",
     "pool_suggestions",
+    "interview_questions",
+    "interview_evaluations",
+    "interview_transcripts",
+    "interview_reports",
+    "interview_decisions",
   ])("gives the anon role no access to %s", async (table) => {
     const message = await rejection(
       admin.begin(async (tx) => {
@@ -738,6 +743,138 @@ describe("Phase 3: automation, inbound mail and the talent pool", () => {
         .returning({ role: schema.memberships.role }),
     );
     expect(owner).toEqual([]);
+  });
+});
+
+describe("Phase 4: interviewers see only the interviews they run", () => {
+  const ivy = newUser("ivy"); // interviewer in alice's org
+  let calendarId = "";
+  let jobId = "";
+  let mineApp = "";
+  let mineCandidate = "";
+  let otherApp = "";
+  let otherCandidate = "";
+  let mineInterview = "";
+  let otherInterview = "";
+
+  beforeAll(async () => {
+    await admin`insert into auth.users (id, email, aud, role)
+                values (${ivy.userId}, ${ivy.email}, 'authenticated', 'authenticated')`;
+    await admin`insert into memberships (org_id, user_id, role)
+                values (${aliceOrg}, ${ivy.userId}, 'interviewer')`;
+    [{ id: calendarId }] = await admin<{ id: string }[]>`
+      insert into calendars (org_id, client_id, owner_user_id, name)
+      values (${aliceOrg}, ${aliceDefaultClient}, ${alice.userId}, '面接官テスト') returning id`;
+    [{ id: jobId }] = await admin<{ id: string }[]>`
+      insert into jobs (org_id, client_id, title) values (${aliceOrg}, ${aliceDefaultClient}, '面接官職')
+      returning id`;
+    const app = async (name: string) => {
+      const [{ id: candidate }] = await admin<{ id: string }[]>`
+        insert into candidates (org_id, name) values (${aliceOrg}, ${name}) returning id`;
+      const [{ id }] = await admin<{ id: string }[]>`
+        insert into applications (org_id, client_id, job_id, candidate_id, source, stage)
+        values (${aliceOrg}, ${aliceDefaultClient}, ${jobId}, ${candidate}, 'manual', 'scheduled')
+        returning id`;
+      return { id, candidate };
+    };
+    ({ id: mineApp, candidate: mineCandidate } = await app("担当 候補"));
+    ({ id: otherApp, candidate: otherCandidate } = await app("担当外 候補"));
+    const interview = async (applicationId: string, at: string, interviewers: string[]) => {
+      const [{ id }] = await admin<{ id: string }[]>`
+        insert into interviews (org_id, client_id, application_id, calendar_id, starts_at, ends_at,
+                                tool, interviewer_ids)
+        values (${aliceOrg}, ${aliceDefaultClient}, ${applicationId}, ${calendarId}, ${at}::timestamptz,
+                ${at}::timestamptz + interval '1 hour', 'url', ${interviewers}::uuid[])
+        returning id`;
+      return id;
+    };
+    mineInterview = await interview(mineApp, "2030-03-04T01:00:00Z", [ivy.userId]);
+    otherInterview = await interview(otherApp, "2030-03-05T01:00:00Z", []);
+    await admin`insert into events (org_id, client_id, application_id, actor, type)
+                values (${aliceOrg}, ${aliceDefaultClient}, ${mineApp}, 'system', 'test.mine'),
+                       (${aliceOrg}, ${aliceDefaultClient}, ${otherApp}, 'system', 'test.other')`;
+  });
+
+  afterAll(async () => {
+    await admin`delete from auth.users where id = ${ivy.userId}`;
+  });
+
+  it("shows the interviewer their interview, its application and candidate, and nothing else", async () => {
+    const ids = async <T extends { id: string }>(q: Promise<T[]>) => (await q).map((r) => r.id);
+    const apps = await ids(
+      withRls(ivy, (tx) => tx.select({ id: schema.applications.id }).from(schema.applications)),
+    );
+    expect(apps).toEqual([mineApp]);
+    const people = await ids(
+      withRls(ivy, (tx) => tx.select({ id: schema.candidates.id }).from(schema.candidates)),
+    );
+    expect(people).toEqual([mineCandidate]);
+    expect(people).not.toContain(otherCandidate);
+    const meetings = await ids(
+      withRls(ivy, (tx) => tx.select({ id: schema.interviews.id }).from(schema.interviews)),
+    );
+    expect(meetings).toEqual([mineInterview]);
+    const timeline = await withRls(ivy, (tx) =>
+      tx.select({ applicationId: schema.events.applicationId }).from(schema.events),
+    );
+    expect(timeline.some((e) => e.applicationId === otherApp)).toBe(false);
+    expect(timeline.some((e) => e.applicationId === mineApp)).toBe(true);
+  });
+
+  it("keeps the client and its job postings visible, so the workspace opens", async () => {
+    const clients = await withRls(ivy, (tx) =>
+      tx.select({ id: schema.clients.id }).from(schema.clients),
+    );
+    expect(clients.map((c) => c.id)).toContain(aliceDefaultClient);
+    const jobs = await withRls(ivy, (tx) => tx.select({ id: schema.jobs.id }).from(schema.jobs));
+    expect(jobs.map((j) => j.id)).toContain(jobId);
+  });
+
+  it("lets the interviewer evaluate their own interview only, as themselves", async () => {
+    const evaluate = (interviewId: string, applicationId: string, authorId: string) =>
+      withRls(ivy, (tx) =>
+        tx.insert(schema.interviewEvaluations).values({
+          orgId: aliceOrg,
+          clientId: aliceDefaultClient,
+          applicationId,
+          interviewId,
+          authorId,
+          scores: { experience: 4 },
+        }),
+      );
+    await evaluate(mineInterview, mineApp, ivy.userId);
+    expect(await rejection(evaluate(otherInterview, otherApp, ivy.userId))).toMatch(
+      /row-level security/,
+    );
+    expect(await rejection(evaluate(mineInterview, mineApp, alice.userId))).toMatch(
+      /row-level security/,
+    );
+  });
+
+  it("leaves decisions to editors", async () => {
+    const decide = (user: User) =>
+      withRls(user, (tx) =>
+        tx.insert(schema.interviewDecisions).values({
+          orgId: aliceOrg,
+          clientId: aliceDefaultClient,
+          applicationId: mineApp,
+          interviewId: mineInterview,
+          decision: "pass",
+          decidedBy: user.userId,
+          previous: {},
+          effectiveAt: new Date(Date.now() + 600_000),
+        }),
+      );
+    expect(await rejection(decide(ivy))).toMatch(/row-level security/);
+    expect(await rejection(decide(carol))).toMatch(/row-level security/);
+    await decide(alice);
+  });
+
+  it("still shows a recruiter everything in their clients", async () => {
+    const apps = await withRls(alice, (tx) =>
+      tx.select({ id: schema.applications.id }).from(schema.applications),
+    );
+    expect(apps.map((a) => a.id)).toEqual(expect.arrayContaining([mineApp, otherApp]));
   });
 });
 

@@ -43,6 +43,8 @@ export const organizations = pgTable(
     docRetentionDays: integer("doc_retention_days").notNull().default(180),
     inboundLocalPart: text("inbound_local_part").unique(),
     testMode: boolean("test_mode").notNull().default(false),
+    /** The company records and transcribes interviews; candidates are told and can decline (M11-5). */
+    recordsInterviews: boolean("records_interviews").notNull().default(false),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

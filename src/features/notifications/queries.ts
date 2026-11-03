@@ -14,7 +14,14 @@ import {
 import { EMAIL_NOTIFICATION_KINDS, type EmailNotificationKind } from "./kinds";
 
 export type NotificationKind =
-  "application" | "review" | "requested" | "unmatched" | "scheduled" | "tomorrow" | "reply";
+  | "application"
+  | "review"
+  | "requested"
+  | "unmatched"
+  | "scheduled"
+  | "tomorrow"
+  | "reply"
+  | "assigned";
 
 export type NotificationItem = {
   kind: NotificationKind;
@@ -23,6 +30,8 @@ export type NotificationItem = {
   name: string;
   /** When it happened; for "tomorrow", when the interview starts. */
   at: string;
+  /** For "tomorrow" and "assigned": the interview to open. */
+  interviewId?: string;
   unread: boolean;
 };
 
@@ -33,6 +42,7 @@ const EVENT_KINDS: Record<string, NotificationKind> = {
   "booking.unmatched": "unmatched",
   "interview.scheduled": "scheduled",
   "message.received": "reply",
+  "interview.assigned": "assigned",
 };
 
 /**
@@ -55,6 +65,7 @@ export async function getNotifications(
       tx
         .select({
           type: events.type,
+          payload: events.payload,
           at: events.occurredAt,
           applicationId: applications.id,
           jobId: applications.jobId,
@@ -84,6 +95,11 @@ export async function getNotifications(
               eq(events.type, "booking.unmatched"),
               eq(events.type, "interview.scheduled"),
               eq(events.type, "message.received"),
+              // Being made an interviewer of an interview.
+              and(
+                eq(events.type, "interview.assigned"),
+                sql`${events.payload}->'interviewerIds' ? ${ctx.userId}`,
+              ),
             ),
           ),
         )
@@ -94,6 +110,7 @@ export async function getNotifications(
           applicationId: applications.id,
           jobId: applications.jobId,
           name: candidates.name,
+          interviewId: interviews.id,
           startsAt: interviews.startsAt,
         })
         .from(interviews)
@@ -116,6 +133,7 @@ export async function getNotifications(
       // Tomorrow's interviews come first and count as new until the bell is cleared today.
       ...tomorrow.map((r) => ({
         kind: "tomorrow" as const,
+        interviewId: r.interviewId,
         applicationId: r.applicationId,
         jobId: r.jobId,
         name: r.name,
@@ -124,6 +142,7 @@ export async function getNotifications(
       })),
       ...rows.map((r) => ({
         kind: EVENT_KINDS[r.type] ?? ("review" as const),
+        interviewId: (r.payload as { interviewId?: string }).interviewId,
         applicationId: r.applicationId,
         jobId: r.jobId,
         name: r.name,
