@@ -1,5 +1,6 @@
 "use server";
 
+import { checkPlanLimit } from "@/features/billing/limits";
 import { randomUUID } from "node:crypto";
 import { and, count, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -82,7 +83,7 @@ export async function setJobStatusAction(
   clientSlug: string,
   jobId: string,
   status: "draft" | "published" | "stopped",
-): Promise<{ ok: boolean; error?: "notReady" | "notFound" }> {
+): Promise<{ ok: boolean; error?: "notReady" | "notFound" | "limit" }> {
   const ctx = await requireEditor(orgSlug, clientSlug);
   const result = await withRls(ctx, async (tx) => {
     const [job] = await tx
@@ -98,6 +99,10 @@ export async function setJobStatusAction(
         images: await imagesOf(tx, jobId),
       });
       if (!isReadyToPost(issues)) return "notReady" as const;
+      // The plan caps how many jobs are published at once (docs/02 M13-4).
+      if (job.status !== "published" && !(await checkPlanLimit(tx, ctx.orgId, "publishedJobs"))) {
+        return "limit" as const;
+      }
     }
     await tx.update(jobs).set({ status }).where(eq(jobs.id, jobId));
     await recordEvent(tx, {

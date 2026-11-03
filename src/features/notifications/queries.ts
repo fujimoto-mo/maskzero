@@ -3,10 +3,18 @@ import { and, asc, desc, eq, gt, gte, lt, or, sql } from "drizzle-orm";
 import { addDays, jstDateKey, jstInstant } from "@/features/scheduling/slots";
 import type { MemberCtx } from "@/server/auth/session";
 import { withRls } from "@/server/db/rls";
-import { applications, candidates, events, interviews, profiles } from "@/server/db/schema";
+import {
+  applications,
+  candidates,
+  events,
+  interviews,
+  notificationSettings,
+  profiles,
+} from "@/server/db/schema";
+import { EMAIL_NOTIFICATION_KINDS, type EmailNotificationKind } from "./kinds";
 
 export type NotificationKind =
-  "application" | "review" | "requested" | "unmatched" | "scheduled" | "tomorrow";
+  "application" | "review" | "requested" | "unmatched" | "scheduled" | "tomorrow" | "reply";
 
 export type NotificationItem = {
   kind: NotificationKind;
@@ -24,11 +32,12 @@ const EVENT_KINDS: Record<string, NotificationKind> = {
   "booking.requested": "requested",
   "booking.unmatched": "unmatched",
   "interview.scheduled": "scheduled",
+  "message.received": "reply",
 };
 
 /**
  * In-app notifications (docs/02 M6-4): new entries and applications that need a person (P1),
- * booking answers, confirmed interviews and tomorrow's interviews (P2). Built from the event log
+ * booking answers, confirmed interviews and tomorrow's interviews (P2), candidate replies (P3). Built from the event log
  * and the interview calendar; anything newer than profiles.notifications_seen_at is unread.
  */
 export async function getNotifications(
@@ -74,6 +83,7 @@ export async function getNotifications(
               ),
               eq(events.type, "booking.unmatched"),
               eq(events.type, "interview.scheduled"),
+              eq(events.type, "message.received"),
             ),
           ),
         )
@@ -123,4 +133,19 @@ export async function getNotifications(
     ];
     return { items, unread: items.filter((i) => i.unread).length };
   });
+}
+
+/** The kinds this member gets by email; none until they choose (docs/02 M6-4). */
+export async function getNotificationPrefs(ctx: MemberCtx): Promise<EmailNotificationKind[]> {
+  const [row] = await withRls(ctx, (tx) =>
+    tx
+      .select({ kinds: notificationSettings.emailKinds })
+      .from(notificationSettings)
+      .where(
+        and(eq(notificationSettings.orgId, ctx.orgId), eq(notificationSettings.userId, ctx.userId)),
+      ),
+  );
+  return (row?.kinds ?? []).filter((k): k is EmailNotificationKind =>
+    (EMAIL_NOTIFICATION_KINDS as readonly string[]).includes(k),
+  );
 }

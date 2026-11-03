@@ -14,7 +14,12 @@ import {
   interviews,
 } from "@/server/db/schema";
 import { recordEvent } from "@/server/events";
-import { interviewChanged, interviewScheduled, invitationResend } from "@/server/jobs/events";
+import {
+  interviewChanged,
+  interviewFinished,
+  interviewScheduled,
+  invitationResend,
+} from "@/server/jobs/events";
 import { sendEventBestEffort } from "@/server/jobs/send";
 import { bookingUrl, portalTokenFor } from "@/server/portal";
 
@@ -228,6 +233,11 @@ export async function markInterviewAction(
   if (!changed) return { ok: false };
   if (status !== "done") {
     await sendEventBestEffort(interviewChanged.create({ interviewId, orgId: ctx.orgId }));
+  }
+  if (status === "done" || status === "no_show") {
+    await sendEventBestEffort(
+      interviewFinished.create({ interviewId, orgId: ctx.orgId, outcome: status }),
+    );
   }
   revalidatePath(path(ctx), "layout");
   return { ok: true };

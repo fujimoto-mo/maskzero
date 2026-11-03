@@ -123,6 +123,22 @@ Code status as of 2026-11-03: work packages 1–6 are built with a fixed meeting
 | 8 | Billing and plan limits | M13-4, M13-5 |
 | 9 | Virus scanning of uploads, penetration test, explainer video, optional English UI | [05 §11](05-architecture.md#11-security-checklist) |
 
+Code status as of 2026-11-03: work packages 1, 3–7 are built; 8 has plan limits and a usage page but no billing; 2 and 9 are not started. Verified on the local Supabase stack with the Inngest dev server.
+
+- [x] 1 · All triggers: invitation, follow-ups, next round, confirmation, reminders 5 and 3 days before (with the answers to the candidate's concerns), the day before and on the day, thanks, no-show, rejection, CV missing, talent-pool suggestion. Company-chosen timing where it makes sense, per-client wording for agencies, and custom emails (what they follow, when, wording)
+- [ ] 2 · Gmail "send as" (needs Google OAuth verification)
+- [x] 3 · Inbound address per company and webhook (Postmark's inbound JSON, Basic auth); job-board notifications become "not yet entered" records, matched when the person enters; nudge text to paste; candidate replies on a messages page, in the timeline and the bell; unmatched mail kept for admins and deleted after 90 days
+- [ ] 3 · Board parsers tuned on real notification emails: today boards are recognised by sender domain or name, and names and jobs by common phrasings and the company's job titles
+- [x] 4 · Analytics: period, cohort funnel with the weakest step and a suggestion, response speed against interview rate, per board, open rate by send hour, days per step
+- [x] 5 · Role and client scope per member and on invitations, clients page, client switcher; TOTP two-factor authentication, required for owners and admins (and for anyone who set it up)
+- [ ] 5 · Interviewers limited to their own interviews (needs interviewer assignment, Phase 4); until then they read like viewers
+- [x] 6 · Per-member email notifications (new application, needs review, booking requests, confirmed interviews, replies, a daily digest of tomorrow's interviews at 18:00)
+- [x] 7 · Talent pool (opted-in candidates, suggest a published job of any client once; the email carries a talent-pool entry URL) and a consent page with one-click opt-out
+- [x] 8 · Plan limits for clients, published jobs and monthly AI spend (screening pauses into "needs review" at the cap) and a usage page. The numbers in `src/features/billing/plans.ts` are placeholders until pricing is set
+- [ ] 8 · Billing (invoices, then cards)
+- [ ] 9 · Virus scanning, penetration test, explainer video, English UI
+- [ ] Apply the Phase 1–3 migrations to the hosted project (`pnpm db:push`); set `INBOUND_DOMAIN` and `INBOUND_WEBHOOK_SECRET` and point the provider's inbound webhook at `/api/webhooks/inbound-email`
+
 **Exit:** a feature-by-feature walkthrough against [07-parity-checklist.md](07-parity-checklist.md) shows parity with the demo except interviews; at least three paying orgs; delivery rate ≥ 98 %.
 
 ---

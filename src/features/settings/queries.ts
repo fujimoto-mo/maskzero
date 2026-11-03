@@ -39,6 +39,8 @@ export type MemberRow = {
   name: string | null;
   email: string;
   role: (typeof memberships.$inferSelect)["role"];
+  /** null = every client. */
+  clientIds: string[] | null;
   lastLoginAt: string | null;
 };
 
@@ -46,6 +48,7 @@ export type InvitationRow = {
   id: string;
   email: string;
   role: (typeof invitations.$inferSelect)["role"];
+  clientIds: string[] | null;
   expiresAt: string;
 };
 
@@ -60,6 +63,7 @@ export async function listMembers(
           name: profiles.name,
           email: profiles.email,
           role: memberships.role,
+          clientIds: memberships.clientIds,
           lastLoginAt: profiles.lastLoginAt,
         })
         .from(memberships)
@@ -71,6 +75,7 @@ export async function listMembers(
           id: invitations.id,
           email: invitations.email,
           role: invitations.role,
+          clientIds: invitations.clientIds,
           expiresAt: invitations.expiresAt,
         })
         .from(invitations)

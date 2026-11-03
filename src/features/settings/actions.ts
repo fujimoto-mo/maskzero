@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, isNull, ne, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -10,9 +10,11 @@ import { recordAudit } from "@/server/audit";
 import { isAdmin, type MemberCtx, requireMember } from "@/server/auth/session";
 import { hashPii } from "@/server/crypto/pii";
 import { newToken, sha256 } from "@/server/crypto/tokens";
+import type { Tx } from "@/server/db/client";
 import { withRls } from "@/server/db/rls";
 import {
   candidates,
+  clients,
   dataRequests,
   invitations,
   memberships,
@@ -71,10 +73,25 @@ export async function saveCompanyAction(
 }
 
 const INVITE_DAYS = 7;
+const ROLES = ["admin", "recruiter", "interviewer", "viewer"] as const;
+/** null = every client; otherwise the clients the member works on (docs/02 M1-4). */
+const scopeSchema = z.array(z.uuid()).min(1).max(200).nullable();
+
 const inviteSchema = z.object({
   email: z.email().max(254),
-  role: z.enum(["admin", "recruiter", "interviewer", "viewer"]),
+  role: z.enum(ROLES),
+  clientIds: scopeSchema.default(null),
 });
+
+/** Keeps only the org's own clients; an empty result means the scope was invalid. */
+async function ownClientIds(tx: Tx, orgId: string, ids: string[] | null) {
+  if (ids === null) return null;
+  const rows = await tx
+    .select({ id: clients.id })
+    .from(clients)
+    .where(and(eq(clients.orgId, orgId), inArray(clients.id, ids)));
+  return rows.map((r) => r.id);
+}
 
 /**
  * Invites a member by email (docs/02 M1-3). The link is also returned once, so the admin can pass
@@ -108,12 +125,15 @@ export async function inviteMemberAction(
           isNull(invitations.acceptedAt),
         ),
       );
+    const clientIds = await ownClientIds(tx, ctx.orgId, parsed.data.clientIds);
+    if (clientIds !== null && clientIds.length === 0) return false;
     const [invitation] = await tx
       .insert(invitations)
       .values({
         orgId: ctx.orgId,
         email,
         role: parsed.data.role,
+        clientIds,
         tokenHash: sha256(token),
         invitedBy: ctx.userId,
         expiresAt: sql`now() + make_interval(days => ${INVITE_DAYS})`,
@@ -125,7 +145,7 @@ export async function inviteMemberAction(
       action: "invitation.created",
       targetType: "invitation",
       targetId: invitation!.id,
-      meta: { role: parsed.data.role },
+      meta: { role: parsed.data.role, scopedClients: parsed.data.clientIds?.length ?? null },
     });
     return true;
   });
@@ -173,6 +193,48 @@ export async function revokeInvitationAction(
     });
   });
   revalidatePath(settingsPath(ctx));
+}
+
+const memberSchema = z.object({ role: z.enum(ROLES), clientIds: scopeSchema });
+
+/** Changes a member's role and client scope (docs/02 M1-4); never the owner, never yourself. */
+export async function updateMemberAction(
+  orgSlug: string,
+  clientSlug: string,
+  userId: string,
+  input: z.input<typeof memberSchema>,
+): Promise<{ ok: boolean }> {
+  const ctx = await requireAdmin(orgSlug, clientSlug);
+  z.uuid().parse(userId);
+  const parsed = memberSchema.safeParse(input);
+  if (!parsed.success || userId === ctx.userId) return { ok: false };
+  const ok = await withRls(ctx, async (tx) => {
+    const clientIds = await ownClientIds(tx, ctx.orgId, parsed.data.clientIds);
+    if (clientIds !== null && clientIds.length === 0) return false;
+    const updated = await tx
+      .update(memberships)
+      .set({ role: parsed.data.role, clientIds })
+      .where(
+        and(
+          eq(memberships.orgId, ctx.orgId),
+          eq(memberships.userId, userId),
+          ne(memberships.role, "owner"),
+        ),
+      )
+      .returning({ userId: memberships.userId });
+    if (updated.length === 0) return false;
+    await recordAudit(tx, {
+      orgId: ctx.orgId,
+      userId: ctx.userId,
+      action: "member.updated",
+      targetType: "user",
+      targetId: userId,
+      meta: { role: parsed.data.role, scopedClients: clientIds?.length ?? null },
+    });
+    return true;
+  });
+  revalidatePath(settingsPath(ctx));
+  return { ok };
 }
 
 /** Removes a member (never the owner, never yourself). */

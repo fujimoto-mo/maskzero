@@ -4,8 +4,9 @@
 
 AI recruiting platform for Japanese recruitment agencies and in-house HR teams. Product and plan:
 [README.md](README.md) and [docs/](docs/). Phase 0 (foundation), Phase 1 work packages 1–11
-(intake and screening) and Phase 2 (booking and scheduling, fixed meeting URL only) are built;
-what's left is tracked in [docs/06-roadmap.md](docs/06-roadmap.md).
+(intake and screening), Phase 2 (booking and scheduling) and most of Phase 3 (automation,
+analytics, team, inbound mail, talent pool, plan limits) are built; what's left is tracked in
+[docs/06-roadmap.md](docs/06-roadmap.md).
 
 ## Commands
 
@@ -55,6 +56,13 @@ local Docker stack is optional and is what the database tests run against.
   it takes the calendar's advisory lock, and the `interviews_no_overlap` constraint rejects overlaps.
 - **Candidate emails go through `sendCandidateMessage()`** with a unique dedupe key, from Inngest
   steps; automatic sends wait out quiet hours (21:00–08:00 JST) and recheck state before sending.
+  Keep candidate names out of subjects you write in code: dry runs log that an email was skipped.
+- **Owners and admins need a second factor.** `requireMember()` sends them (and anyone who set
+  one up) to `/mfa` until the session is aal2. Owners cannot remove their last authenticator app.
+- **Plan limits** (`src/features/billing`) are checked where clients are added, jobs published and
+  documents read; the limits themselves are placeholders until pricing is decided.
+- **"use server" files export async functions only** (types are fine). The production build
+  fails on anything else, and `next dev` doesn't notice.
 - **UI text** lives in `src/messages/ja.json` (keys are type-checked). Write original Japanese copy;
   never reuse lista-hr.com wording or assets ([docs/01 §11](docs/01-reference-site-analysis.md#11-originality-rules-for-mask0)).
   Keys can't contain dots (next-intl nests on them). Each route group sends only its namespaces to

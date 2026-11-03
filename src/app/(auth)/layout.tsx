@@ -11,7 +11,7 @@ export const instant = false;
 export default async function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <NextIntlClientProvider
-      messages={await clientMessages("Common", "Auth", "Onboarding", "Invite")}
+      messages={await clientMessages("Common", "Auth", "Onboarding", "Invite", "Mfa")}
     >
       <div className="flex flex-1 flex-col items-center justify-center gap-8 px-4 py-12">
         <Link href="/" aria-label="mask0">

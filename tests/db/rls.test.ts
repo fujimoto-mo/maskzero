@@ -106,6 +106,11 @@ describe("RLS coverage", () => {
     "booking_requests",
     "message_templates",
     "messages",
+    "custom_messages",
+    "inbound_emails",
+    "entry_waits",
+    "notification_settings",
+    "pool_suggestions",
   ])("gives the anon role no access to %s", async (table) => {
     const message = await rejection(
       admin.begin(async (tx) => {
@@ -612,6 +617,130 @@ describe("Phase 2: scheduling and email", () => {
   });
 });
 
+describe("Phase 3: automation, inbound mail and the talent pool", () => {
+  let jobId = "";
+  let applicationId = "";
+  let candidateId = "";
+
+  beforeAll(async () => {
+    [{ id: jobId }] = await admin<{ id: string }[]>`
+      insert into jobs (org_id, client_id, title, status)
+      values (${aliceOrg}, ${aliceDefaultClient}, 'プール職', 'published') returning id`;
+    [{ id: candidateId }] = await admin<{ id: string }[]>`
+      insert into candidates (org_id, name) values (${aliceOrg}, 'プール 候補') returning id`;
+    [{ id: applicationId }] = await admin<{ id: string }[]>`
+      insert into applications (org_id, client_id, job_id, candidate_id, source, other_jobs_opt_in)
+      values (${aliceOrg}, ${aliceDefaultClient}, ${jobId}, ${candidateId}, 'manual', true)
+      returning id`;
+    await admin`insert into consents (org_id, client_id, candidate_id, application_id, kind, granted, text_version)
+                values (${aliceOrg}, ${aliceDefaultClient}, ${candidateId}, ${applicationId}, 'other_jobs', true, 'test')`;
+    // A matched reply, and an unmatched notification that only admins may see.
+    await admin`insert into inbound_emails (org_id, client_id, application_id, kind)
+                values (${aliceOrg}, ${aliceDefaultClient}, ${applicationId}, 'candidate_reply')`;
+    await admin`insert into inbound_emails (org_id, kind) values (${aliceOrg}, 'other')`;
+    await admin`insert into entry_waits (org_id, client_id, job_id, channel, applicant_name)
+                values (${aliceOrg}, ${aliceDefaultClient}, ${jobId}, 'Indeed', '待ち 太郎')`;
+  });
+
+  it.each(["inbound_emails", "entry_waits"])(
+    "shows %s only inside the client scope",
+    async (table) => {
+      const count = async (user: User) => {
+        const [row] = await withRls(user, (tx) =>
+          tx.execute<{ n: number }>(sql.raw(`select count(*)::int as n from public.${table}`)),
+        );
+        return row!.n;
+      };
+      expect(await count(alice)).toBeGreaterThan(0);
+      expect(await count(bob)).toBe(0);
+      expect(await count(carol)).toBe(0);
+    },
+  );
+
+  it("keeps unmatched inbound mail to owners and admins", async () => {
+    const unmatched = (user: User) =>
+      withRls(user, (tx) =>
+        tx
+          .select({ id: schema.inboundEmails.id })
+          .from(schema.inboundEmails)
+          .where(sql`${schema.inboundEmails.clientId} is null`),
+      );
+    expect(await unmatched(alice)).toHaveLength(1);
+    expect(await unmatched(carol)).toEqual([]);
+  });
+
+  it("lets only owners and admins write custom emails", async () => {
+    const write = (user: User) =>
+      withRls(user, (tx) =>
+        tx.insert(schema.customMessages).values({
+          orgId: aliceOrg,
+          name: "テスト",
+          anchor: "applied",
+          subject: "件名",
+          body: "本文",
+        }),
+      );
+    expect(await rejection(write(carol))).toMatch(/row-level security/);
+    expect(await rejection(write(bob))).toMatch(/row-level security/);
+    await write(alice);
+  });
+
+  it("keeps each member's notification settings to themselves", async () => {
+    await withRls(alice, (tx) =>
+      tx
+        .insert(schema.notificationSettings)
+        .values({ orgId: aliceOrg, userId: alice.userId, emailKinds: ["needs_review"] }),
+    );
+    const spoof = await rejection(
+      withRls(carol, (tx) =>
+        tx
+          .insert(schema.notificationSettings)
+          .values({ orgId: aliceOrg, userId: alice.userId, emailKinds: [] }),
+      ),
+    );
+    expect(spoof).toMatch(/row-level security/);
+    const seen = await withRls(carol, (tx) => tx.select().from(schema.notificationSettings));
+    expect(seen).toEqual([]);
+  });
+
+  it("records talent-pool suggestions only as the suggesting editor, within scope", async () => {
+    const suggest = (user: User, suggestedBy: string) =>
+      withRls(user, (tx) =>
+        tx.insert(schema.poolSuggestions).values({
+          orgId: aliceOrg,
+          clientId: aliceDefaultClient,
+          jobId,
+          candidateId,
+          sourceApplicationId: applicationId,
+          suggestedBy,
+        }),
+      );
+    expect(await rejection(suggest(alice, bob.userId))).toMatch(/row-level security/);
+    expect(await rejection(suggest(carol, carol.userId))).toMatch(/row-level security/);
+    await suggest(alice, alice.userId);
+  });
+
+  it("lets admins change a member's role and scope, never an owner's", async () => {
+    const promoted = await withRls(alice, (tx) =>
+      tx
+        .update(schema.memberships)
+        .set({ role: "viewer", clientIds: [aliceSecondClient] })
+        .where(eq(schema.memberships.userId, carol.userId))
+        .returning({ role: schema.memberships.role }),
+    );
+    expect(promoted).toEqual([{ role: "viewer" }]);
+    await admin`update memberships set role = 'recruiter' where user_id = ${carol.userId}`;
+    const owner = await withRls(alice, (tx) =>
+      tx
+        .update(schema.memberships)
+        .set({ role: "viewer" })
+        .where(eq(schema.memberships.userId, alice.userId))
+        .returning({ role: schema.memberships.role }),
+    );
+    expect(owner).toEqual([]);
+  });
+});
+
 describe("accept_invitation()", () => {
   it("joins only with the invited address, and only once", async () => {
     const dave = newUser("dave");
@@ -634,6 +763,25 @@ describe("accept_invitation()", () => {
         select role from memberships where org_id = ${aliceOrg} and user_id = ${dave.userId}`;
       expect(membership?.role).toBe("recruiter");
       expect(await rejection(accept(dave))).toMatch(/invalid or expired/);
+
+      // An invitation limited to the second client lands there, not on the default client.
+      const erin = newUser("erin");
+      await admin`insert into auth.users (id, email, aud, role)
+                  values (${erin.userId}, ${erin.email}, 'authenticated', 'authenticated')`;
+      try {
+        const scopedHash = `invite-scoped-${run}`;
+        await admin`insert into invitations (org_id, email, role, client_ids, token_hash, expires_at)
+                    values (${aliceOrg}, ${erin.email}, 'recruiter', ${[aliceSecondClient]},
+                            ${scopedHash}, now() + interval '1 day')`;
+        const [landed] = await withRls(erin, (tx) =>
+          tx.execute<{ client_slug: string }>(
+            sql`select * from private.accept_invitation(${scopedHash})`,
+          ),
+        );
+        expect(landed?.client_slug).toBe("second");
+      } finally {
+        await admin`delete from auth.users where id = ${erin.userId}`;
+      }
     } finally {
       await admin`delete from auth.users where id = ${dave.userId}`;
     }
