@@ -35,6 +35,9 @@ export const KNOWN_CHANNELS: readonly string[] = CHANNEL_GROUPS.flatMap((g) => g
 
 export const CUSTOM_CHANNEL_MAX = 30;
 
+/** The channel of entry URLs sent with talent-pool suggestions (docs/02 M5-6). */
+export const POOL_CHANNEL = "人材プール";
+
 /** A channel name as stored: a known board, or a trimmed custom name; null if unusable. */
 export function normalizeChannel(raw: string): string | null {
   const name = raw.normalize("NFKC").trim().replace(/\s+/g, " ");

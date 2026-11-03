@@ -38,6 +38,8 @@ export const organizations = pgTable(
     senderName: text("sender_name"),
     replyTo: text("reply_to"),
     entryMsgTemplate: text("entry_msg_template"),
+    /** Paste text for applicants who applied on a board but have not entered (M3-11). */
+    nudgeMsgTemplate: text("nudge_msg_template"),
     docRetentionDays: integer("doc_retention_days").notNull().default(180),
     inboundLocalPart: text("inbound_local_part").unique(),
     testMode: boolean("test_mode").notNull().default(false),

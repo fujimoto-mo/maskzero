@@ -1,15 +1,20 @@
 import {
+  Building2Icon,
   BriefcaseBusinessIcon,
   CalendarCheckIcon,
   CalendarDaysIcon,
+  ChartColumnIcon,
   FileCheckIcon,
   LayoutDashboardIcon,
   LinkIcon,
+  MailIcon,
   SettingsIcon,
+  UserSearchIcon,
   UsersIcon,
 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
+import { ClientSwitcher } from "@/components/app-shell/client-switcher";
 import { CommandSearch } from "@/components/app-shell/command-search";
 import { MobileNav } from "@/components/app-shell/mobile-nav";
 import { NavLink } from "@/components/app-shell/nav-link";
@@ -17,8 +22,11 @@ import { NotificationsMenu } from "@/components/app-shell/notifications-menu";
 import { SignOutButton } from "@/components/app-shell/sign-out-button";
 import { Wordmark } from "@/components/brand/wordmark";
 import { Toaster } from "@/components/ui/sonner";
+import { Button } from "@/components/ui/button";
+import { listClientOptions } from "@/features/clients/queries";
+import { countUnreadReplies } from "@/features/inbound/queries";
 import { getNotifications } from "@/features/notifications/queries";
-import { requireMember } from "@/server/auth/session";
+import { canEdit, isAdmin, requireMember } from "@/server/auth/session";
 
 export const instant = false; // reads the session per request (CLAUDE.md, "Cache Components")
 
@@ -29,9 +37,12 @@ export default async function ClientLayout({
 }: LayoutProps<"/app/[org]/[client]">) {
   const { org, client } = await params;
   const ctx = await requireMember(org, client);
-  const [t, notifications] = await Promise.all([
+  const agency = ctx.orgKind === "agency";
+  const [t, notifications, clientOptions, unreadReplies] = await Promise.all([
     getTranslations(),
     getNotifications(ctx, new Date()),
+    agency ? listClientOptions(ctx) : Promise.resolve([]),
+    countUnreadReplies(ctx),
   ]);
   const base = `/app/${ctx.orgSlug}/${ctx.clientSlug}`;
 
@@ -62,12 +73,25 @@ export default async function ClientLayout({
         <NavLink href={`${base}/candidates`} icon={<UsersIcon aria-hidden />}>
           {t("App.nav.candidates")}
         </NavLink>
+        {agency && canEdit(ctx) ? (
+          <NavLink href={`${base}/pool`} icon={<UserSearchIcon aria-hidden />}>
+            {t("App.nav.pool")}
+          </NavLink>
+        ) : null}
         <NavLink href={`${base}/scheduling`} icon={<CalendarDaysIcon aria-hidden />}>
           {t("App.nav.scheduling")}
         </NavLink>
         <NavLink href={`${base}/entry-urls`} icon={<LinkIcon aria-hidden />}>
           {t("App.nav.entryUrls")}
         </NavLink>
+        <NavLink href={`${base}/analytics`} icon={<ChartColumnIcon aria-hidden />}>
+          {t("App.nav.analytics")}
+        </NavLink>
+        {agency && isAdmin(ctx) ? (
+          <NavLink href={`${base}/clients`} icon={<Building2Icon aria-hidden />}>
+            {t("App.nav.clients")}
+          </NavLink>
+        ) : null}
         <NavLink href={`${base}/settings`} icon={<SettingsIcon aria-hidden />}>
           {t("App.nav.settings")}
         </NavLink>
@@ -88,8 +112,35 @@ export default async function ClientLayout({
           <Link href={`${base}/dashboard`} aria-label="mask0" className="md:hidden">
             <Wordmark className="text-lg" />
           </Link>
+          {clientOptions.length > 1 ? (
+            <ClientSwitcher
+              orgSlug={ctx.orgSlug}
+              current={ctx.clientSlug}
+              clients={clientOptions.map((c) => ({ slug: c.slug, name: c.name }))}
+            />
+          ) : null}
           <div className="ml-auto flex items-center gap-2">
             <CommandSearch base={base} />
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className="relative"
+              aria-label={
+                unreadReplies > 0
+                  ? t("App.messages.labelUnread", { count: unreadReplies })
+                  : t("App.messages.label")
+              }
+            >
+              <Link href={`${base}/messages`}>
+                <MailIcon aria-hidden />
+                {unreadReplies > 0 ? (
+                  <span className="absolute top-1 right-1 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-white tabular-nums">
+                    {unreadReplies > 9 ? "9+" : unreadReplies}
+                  </span>
+                ) : null}
+              </Link>
+            </Button>
             <NotificationsMenu
               base={base}
               items={notifications.items}

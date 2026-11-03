@@ -11,7 +11,9 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 export default async function CandidateLayout({ children }: { children: ReactNode }) {
   return (
-    <NextIntlClientProvider messages={await clientMessages("Common", "Entry", "Portal", "Booking")}>
+    <NextIntlClientProvider
+      messages={await clientMessages("Common", "Entry", "Portal", "Booking", "Consent")}
+    >
       <div className="flex min-h-svh flex-col bg-muted/40">
         <main className="mx-auto w-full max-w-xl flex-1 px-4 py-6 sm:py-10">{children}</main>
         <footer className="flex items-center justify-center gap-1.5 pb-8 text-xs text-muted-foreground">

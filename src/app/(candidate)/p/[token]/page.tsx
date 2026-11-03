@@ -165,6 +165,13 @@ export default async function PortalPage({ params }: PageProps<"/p/[token]">) {
           )}
         </CardContent>
       </Card>
+
+      <Link
+        href={`/p/${token}/consent`}
+        className="justify-self-start text-sm text-muted-foreground underline-offset-4 hover:underline"
+      >
+        {t("consentLink")}
+      </Link>
     </div>
   );
 }

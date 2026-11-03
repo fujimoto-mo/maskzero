@@ -223,6 +223,7 @@ function TimelineEntry({ item }: { item: TimelineItem }) {
     "message_sent",
     "message_dry_run",
     "message_failed",
+    "message_received",
   ];
   const verdict =
     typeof item.payload.verdict === "string" ? verdicts(item.payload.verdict as Verdict) : "";

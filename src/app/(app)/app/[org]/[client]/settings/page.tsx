@@ -26,6 +26,15 @@ import {
   listMembers,
 } from "@/features/settings/queries";
 import { EmailSettings } from "@/features/messaging/components/email-settings";
+import { listClientOptions } from "@/features/clients/queries";
+import { getMfaState } from "@/server/auth/mfa";
+import { PlanUsage } from "@/features/billing/components/plan-usage";
+import { loadPlan, loadUsage } from "@/features/billing/limits";
+import { withRls } from "@/server/db/rls";
+import { InboundSettings } from "@/features/inbound/components/inbound-settings";
+import { getInboundSettings } from "@/features/inbound/queries";
+import { NotificationPrefs } from "@/features/notifications/components/notification-prefs";
+import { getNotificationPrefs } from "@/features/notifications/queries";
 import { getMessageSettings, listMessages } from "@/features/messaging/queries";
 import { cn } from "@/lib/utils";
 import { isAdmin, requireMember } from "@/server/auth/session";
@@ -34,8 +43,17 @@ export const instant = false; // reads the session per request (CLAUDE.md, "Cach
 
 export const metadata: Metadata = { title: "設定" };
 
-const ADMIN_TABS = ["company", "members", "email", "requests", "audit", "usage"] as const;
-type Tab = (typeof ADMIN_TABS)[number] | "log" | "profile";
+const ADMIN_TABS = [
+  "company",
+  "members",
+  "email",
+  "inbound",
+  "requests",
+  "audit",
+  "usage",
+  "plan",
+] as const;
+type Tab = (typeof ADMIN_TABS)[number] | "log" | "notifications" | "profile";
 
 const timeFormat = new Intl.DateTimeFormat("ja-JP", {
   dateStyle: "short",
@@ -51,11 +69,14 @@ export default async function SettingsPage({
   const [{ org, client }, query] = await Promise.all([params, searchParams]);
   const ctx = await requireMember(org, client);
   const admin = isAdmin(ctx);
-  const tabs: Tab[] = admin ? [...ADMIN_TABS, "log", "profile"] : ["log", "profile"];
+  const tabs: Tab[] = admin
+    ? [...ADMIN_TABS, "log", "notifications", "profile"]
+    : ["log", "notifications", "profile"];
   const tab = tabs.find((t) => t === query.tab) ?? tabs[0]!;
   const t = await getTranslations("Settings");
   const base = `/app/${ctx.orgSlug}/${ctx.clientSlug}/settings`;
   const target = { orgSlug: ctx.orgSlug, clientSlug: ctx.clientSlug };
+  const emailScope = query.scope === "client" && ctx.orgKind === "agency" ? "client" : "org";
 
   return (
     <div className="mx-auto grid max-w-5xl gap-6">
@@ -80,18 +101,49 @@ export default async function SettingsPage({
         <CompanyForm target={target} company={await getCompanySettings(ctx)} />
       ) : null}
       {tab === "members" ? (
-        <MembersPanel target={target} selfId={ctx.userId} {...await listMembers(ctx)} />
+        <MembersPanel
+          target={target}
+          selfId={ctx.userId}
+          clients={ctx.orgKind === "agency" ? await listClientOptions(ctx) : []}
+          {...await listMembers(ctx)}
+        />
+      ) : null}
+      {tab === "inbound" ? (
+        <InboundSettings target={target} {...await getInboundSettings(ctx)} />
       ) : null}
       {tab === "requests" ? (
         <DataRequestsPanel target={target} requests={await listDataRequests(ctx)} />
       ) : null}
       {tab === "audit" ? <AuditLog rows={await listAuditLogs(ctx)} /> : null}
       {tab === "usage" ? <Usage rows={await getAiUsage(ctx)} /> : null}
+      {tab === "plan" ? (
+        <PlanUsage
+          agency={ctx.orgKind === "agency"}
+          {...await withRls(ctx, async (tx) => ({
+            plan: await loadPlan(tx, ctx.orgId),
+            usage: await loadUsage(tx, ctx.orgId, new Date()),
+          }))}
+        />
+      ) : null}
       {tab === "email" ? (
-        <EmailSettings target={target} {...await getMessageSettings(ctx)} />
+        <EmailSettings
+          target={target}
+          scope={emailScope}
+          agency={ctx.orgKind === "agency" ? { clientName: ctx.clientName } : null}
+          {...await getMessageSettings(ctx, emailScope)}
+        />
       ) : null}
       {tab === "log" ? <MessageLog rows={await listMessages(ctx)} /> : null}
-      {tab === "profile" ? <ProfileForm target={target} profile={await getProfile(ctx)} /> : null}
+      {tab === "notifications" ? (
+        <NotificationPrefs target={target} initial={await getNotificationPrefs(ctx)} />
+      ) : null}
+      {tab === "profile" ? (
+        <ProfileForm
+          target={target}
+          profile={await getProfile(ctx)}
+          mfa={{ required: admin, factors: (await getMfaState()).factors }}
+        />
+      ) : null}
     </div>
   );
 }
@@ -245,7 +297,9 @@ async function MessageLog({ rows }: { rows: Awaited<ReturnType<typeof listMessag
                   <TableCell className="text-sm">{row.candidateName}</TableCell>
                   <TableCell className="text-sm">
                     <p>{row.subject}</p>
-                    <p className="text-xs text-muted-foreground">{triggers(row.trigger)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {row.trigger === "custom" ? (row.customName ?? "") : triggers(row.trigger)}
+                    </p>
                   </TableCell>
                   <TableCell className="text-sm">
                     {t(`statuses.${row.status}`)}

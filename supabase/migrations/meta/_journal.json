@@ -57,6 +57,20 @@
       "when": 1793629829702,
       "tag": "20261102143029_scheduling_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793677250237,
+      "tag": "20261103034050_automation",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793677257069,
+      "tag": "20261103034057_automation_rls",
+      "breakpoints": true
     }
   ]
 }

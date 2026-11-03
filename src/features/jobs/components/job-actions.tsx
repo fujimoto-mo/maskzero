@@ -57,7 +57,7 @@ export function JobActions({
       if (next === "published" && !(await beforePublish())) return;
       const result = await setJobStatusAction(orgSlug, clientSlug, jobId, next);
       if (!result.ok) {
-        toast.error(t("notReady"));
+        toast.error(t(result.error === "limit" ? "limit" : "notReady"));
         return;
       }
       toast.success(

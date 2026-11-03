@@ -7,7 +7,12 @@ import { withRls } from "@/server/db/rls";
 import { clients, memberships, organizations } from "@/server/db/schema";
 import { createSupabaseServerClient } from "@/server/supabase/server";
 
-export type SessionUser = { userId: string; email: string };
+export type SessionUser = {
+  userId: string;
+  email: string;
+  /** "aal2" once the session passed the authenticator-app step (from the JWT). */
+  aal?: "aal1" | "aal2";
+};
 
 export type MemberRole = (typeof memberships.$inferSelect)["role"];
 
@@ -24,6 +29,13 @@ export type MemberCtx = SessionUser & {
   clientScope: string[] | null;
 };
 
+/** Whether the user has a verified authenticator app (read from the session, no network call). */
+async function hasSecondFactor(): Promise<boolean> {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  return data?.nextLevel === "aal2";
+}
+
 /** The signed-in user, verified with getClaims() (JWT signature check), or null. */
 export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   // A session only exists on a real request; this also keeps token-expiry clock reads out of
@@ -33,7 +45,11 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   const { data, error } = await supabase.auth.getClaims();
   const claims = data?.claims;
   if (error || !claims?.sub) return null;
-  return { userId: claims.sub, email: typeof claims.email === "string" ? claims.email : "" };
+  return {
+    userId: claims.sub,
+    email: typeof claims.email === "string" ? claims.email : "",
+    aal: claims.aal === "aal2" ? "aal2" : "aal1",
+  };
 });
 
 export async function requireUser(): Promise<SessionUser> {
@@ -77,6 +93,15 @@ export const requireMember = cache(
     );
     if (!row) notFound();
     if (row.clientScope && !row.clientScope.includes(row.clientId)) notFound();
+    // Owners and admins work only with a second factor, and so does anyone who set one up
+    // (docs/02 M1-6, docs/05 §11).
+    if (user.aal !== "aal2") {
+      const admin = row.role === "owner" || row.role === "admin";
+      if (admin || (await hasSecondFactor())) {
+        const next = encodeURIComponent(`/app/${row.orgSlug}/${row.clientSlug}/dashboard`);
+        redirect(`/mfa?next=${next}${admin ? "&required=1" : ""}`);
+      }
+    }
     return { ...user, ...row };
   },
 );

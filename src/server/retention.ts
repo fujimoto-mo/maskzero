@@ -1,7 +1,7 @@
 import "server-only";
-import { and, inArray, lt, sql } from "drizzle-orm";
+import { and, inArray, isNull, lt, sql } from "drizzle-orm";
 import { getAdminDb } from "@/server/db/admin";
-import { applications, candidates, documents } from "@/server/db/schema";
+import { applications, candidates, documents, entryWaits, inboundEmails } from "@/server/db/schema";
 import { recordEvent } from "@/server/events";
 import { removeObjects } from "@/server/storage";
 
@@ -40,7 +40,10 @@ export async function purgeExpiredBatch(limit: number): Promise<number> {
   );
 
   await db.transaction(async (tx) => {
-    // Answers, documents, consents and screening records go with the application (FK cascade).
+    // "Not yet entered" records only lose their link on delete, so they go first, names and all.
+    await tx.delete(entryWaits).where(inArray(entryWaits.applicationId, ids));
+    // Answers, documents, consents, replies and screening records go with the application (FK
+    // cascade).
     await tx.delete(applications).where(inArray(applications.id, ids));
     const candidateIds = [...new Set(expired.map((a) => a.candidateId))];
     await tx
@@ -63,4 +66,25 @@ export async function purgeExpiredBatch(limit: number): Promise<number> {
     }
   });
   return expired.length;
+}
+
+/** Days an unmatched inbound email or an unanswered board notice is kept (docs/02 M3-10). */
+export const INBOUND_RETENTION_DAYS = 90;
+
+/**
+ * Inbound mail that never matched an application, and "not yet entered" records that never
+ * entered, are personal data with no application to purge them: they go after 90 days.
+ */
+export async function purgeStaleInbound(): Promise<number> {
+  const db = getAdminDb();
+  const cutoff = sql`now() - make_interval(days => ${INBOUND_RETENTION_DAYS})`;
+  const waits = await db
+    .delete(entryWaits)
+    .where(and(sql`${entryWaits.status} <> 'entered'`, lt(entryWaits.notifiedAt, cutoff)))
+    .returning({ id: entryWaits.id });
+  const emails = await db
+    .delete(inboundEmails)
+    .where(and(isNull(inboundEmails.applicationId), lt(inboundEmails.receivedAt, cutoff)))
+    .returning({ id: inboundEmails.id });
+  return waits.length + emails.length;
 }

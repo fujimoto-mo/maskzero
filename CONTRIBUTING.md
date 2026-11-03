@@ -64,6 +64,16 @@ row's menu). Invitations, follow-ups, confirmations and reminders are Inngest fu
 the Inngest dev UI at http://localhost:8288 shows each run's sleeps. Without `RESEND_API_KEY`,
 emails are only recorded in 設定 → 送信履歴 as 記録のみ.
 
+The demo login is an owner, so the first sign-in asks for two-factor authentication: scan the QR
+code with an authenticator app (or type the key shown under it). `pnpm db:reset` removes the
+factor again.
+
+Inbound mail needs `INBOUND_DOMAIN` and `INBOUND_WEBHOOK_SECRET` in `.env.local`. Issue the address
+in 設定 → 受信, then post an email in Postmark's inbound format to
+`/api/webhooks/inbound-email` with Basic auth (any user name, the secret as the password). A
+notification from a board for one of the company's job titles appears in 書類選考 → 未エントリー;
+an email from a candidate's address appears in the header's 応募者からの返信.
+
 ## Before you push
 
 ```bash

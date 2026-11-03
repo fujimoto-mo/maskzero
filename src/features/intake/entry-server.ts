@@ -1,4 +1,5 @@
 import "server-only";
+import { matchEntryWait } from "@/features/inbound/server";
 import { randomUUID } from "node:crypto";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { formatPay } from "@/features/jobs/checks";
@@ -359,6 +360,15 @@ export async function createEntryApplication(
       type: application!.created ? "application.created" : "application.reentered",
       payload: { jobId: scope.jobId, entryUrlId: scope.entryUrlId, channel: view.channel },
     });
+    // Someone the board told us about has now entered (docs/02 M3-10).
+    if (application!.created) {
+      await matchEntryWait(tx, {
+        jobId: scope.jobId,
+        channel: view.channel,
+        name: candidate!.name,
+        applicationId,
+      });
+    }
     return { applicationId, created: application!.created, name: candidate!.name, paths };
   });
 

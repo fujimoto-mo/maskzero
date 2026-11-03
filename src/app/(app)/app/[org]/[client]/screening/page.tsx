@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { countOpenWaits } from "@/features/inbound/queries";
 import { ScreeningDrawer } from "@/features/screening/components/screening-drawer";
 import { ScreeningView } from "@/features/screening/components/screening-view";
 import { getScreeningDetail, listScreening, listScreeningJobs } from "@/features/screening/queries";
@@ -18,7 +21,11 @@ export default async function ScreeningPage({
 }: PageProps<"/app/[org]/[client]/screening">) {
   const [{ org, client }, query] = await Promise.all([params, searchParams]);
   const ctx = await requireMember(org, client);
-  const [t, jobs] = await Promise.all([getTranslations("Screening"), listScreeningJobs(ctx)]);
+  const [t, jobs, waiting] = await Promise.all([
+    getTranslations("Screening"),
+    listScreeningJobs(ctx),
+    countOpenWaits(ctx),
+  ]);
   const base = `/app/${ctx.orgSlug}/${ctx.clientSlug}`;
 
   const jobId = jobs.find((j) => j.id === query.job)?.id ?? jobs[0]?.id;
@@ -35,9 +42,14 @@ export default async function ScreeningPage({
 
   return (
     <div className="mx-auto grid max-w-6xl gap-6">
-      <div>
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
-        <p className="text-sm text-muted-foreground">{t("description")}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">{t("title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("description")}</p>
+        </div>
+        <Button asChild variant="outline" size="sm">
+          <Link href={`${base}/screening/waiting`}>{t("waiting", { count: waiting })}</Link>
+        </Button>
       </div>
       {jobId && list ? (
         <ScreeningView

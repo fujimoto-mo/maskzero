@@ -9,6 +9,17 @@ import { NativeSelect } from "@/components/native-select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { removeTotpAction } from "@/features/auth/mfa";
+import type { ClientOption } from "@/features/clients/queries";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -28,6 +39,7 @@ import {
   saveCompanyAction,
   signOutEverywhereAction,
   updateDataRequestAction,
+  updateMemberAction,
   updateProfileAction,
 } from "../actions";
 import type { CompanySettings, DataRequestRow, InvitationRow, MemberRow } from "../queries";
@@ -141,27 +153,80 @@ export function CompanyForm({ target, company }: { target: Target; company: Comp
   );
 }
 
+const ASSIGNABLE_ROLES = ["admin", "recruiter", "interviewer", "viewer"] as const;
+type AssignableRole = (typeof ASSIGNABLE_ROLES)[number];
+
+/** Checkboxes for the clients a member works on; none ticked means every client. */
+function ScopePicker({
+  idPrefix,
+  clients,
+  value,
+  onChange,
+}: {
+  idPrefix: string;
+  clients: ClientOption[];
+  value: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const t = useTranslations("Settings.members");
+  return (
+    <fieldset className="grid gap-2">
+      <legend className="text-sm font-medium">{t("scope")}</legend>
+      <p className="text-xs text-muted-foreground">{t("scopeHint")}</p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {clients.map((c) => (
+          <Label key={c.id} htmlFor={`${idPrefix}-${c.id}`} className="font-normal">
+            <Checkbox
+              id={`${idPrefix}-${c.id}`}
+              checked={value.includes(c.id)}
+              onCheckedChange={(on) =>
+                onChange(on ? [...value, c.id] : value.filter((id) => id !== c.id))
+              }
+            />
+            {c.name}
+          </Label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+function scopeLabel(ids: string[] | null, clients: ClientOption[], all: string) {
+  if (ids === null) return all;
+  return clients
+    .filter((c) => ids.includes(c.id))
+    .map((c) => c.name)
+    .join("、");
+}
+
 export function MembersPanel({
   target,
   members,
   invitations,
   selfId,
+  clients,
 }: {
   target: Target;
   members: MemberRow[];
   invitations: InvitationRow[];
   selfId: string;
+  /** The agency's clients; empty for in-house companies, which have no client scope. */
+  clients: ClientOption[];
 }) {
   const t = useTranslations("Settings.members");
   const [pending, startTransition] = useTransition();
   const [link, setLink] = useState<string | null>(null);
+  const [inviteScope, setInviteScope] = useState<string[]>([]);
+  const [editing, setEditing] = useState<MemberRow | null>(null);
+  const scoped = clients.length > 1;
 
   function invite(form: FormData) {
     setLink(null);
     startTransition(async () => {
       const result = await inviteMemberAction(target.orgSlug, target.clientSlug, {
         email: String(form.get("email") ?? ""),
-        role: String(form.get("role") ?? "recruiter") as "recruiter",
+        role: String(form.get("role") ?? "recruiter") as AssignableRole,
+        clientIds: inviteScope.length > 0 ? inviteScope : null,
       });
       if (!result.ok) {
         toast.error(result.error === "member" ? t("alreadyMember") : t("invalid"));
@@ -202,6 +267,16 @@ export function MembersPanel({
             <MailPlusIcon aria-hidden />
             {t("send")}
           </Button>
+          {scoped ? (
+            <div className="basis-full">
+              <ScopePicker
+                idPrefix="invite-scope"
+                clients={clients}
+                value={inviteScope}
+                onChange={setInviteScope}
+              />
+            </div>
+          ) : null}
         </form>
         {link ? (
           <div className="grid gap-2 rounded-lg bg-muted/50 p-3 text-sm">
@@ -218,6 +293,7 @@ export function MembersPanel({
             <TableRow>
               <TableHead>{t("email")}</TableHead>
               <TableHead>{t("role")}</TableHead>
+              {scoped ? <TableHead>{t("scope")}</TableHead> : null}
               <TableHead>{t("lastLogin")}</TableHead>
               <TableHead />
             </TableRow>
@@ -237,10 +313,26 @@ export function MembersPanel({
                     </Badge>
                   ) : null}
                 </TableCell>
+                {scoped ? (
+                  <TableCell className="text-sm">
+                    {scopeLabel(m.clientIds, clients, t("allClients"))}
+                  </TableCell>
+                ) : null}
                 <TableCell className="text-sm text-muted-foreground">
                   {m.lastLoginAt ? dateFormat.format(new Date(m.lastLoginAt)) : t("never")}
                 </TableCell>
                 <TableCell className="text-right">
+                  {m.role !== "owner" && m.userId !== selfId ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={pending}
+                      onClick={() => setEditing(m)}
+                      aria-label={t("editOf", { name: m.name ?? m.email })}
+                    >
+                      {t("edit")}
+                    </Button>
+                  ) : null}
                   {m.role !== "owner" && m.userId !== selfId ? (
                     <Button
                       variant="ghost"
@@ -272,6 +364,11 @@ export function MembersPanel({
                     {t("pending")}
                   </Badge>
                 </TableCell>
+                {scoped ? (
+                  <TableCell className="text-sm">
+                    {scopeLabel(i.clientIds, clients, t("allClients"))}
+                  </TableCell>
+                ) : null}
                 <TableCell className="text-sm text-muted-foreground">
                   {t("expires", { date: dateFormat.format(new Date(i.expiresAt)) })}
                 </TableCell>
@@ -294,7 +391,89 @@ export function MembersPanel({
           </TableBody>
         </Table>
       </CardContent>
+      {editing ? (
+        <MemberDialog
+          key={editing.userId}
+          target={target}
+          member={editing}
+          clients={scoped ? clients : []}
+          onClose={() => setEditing(null)}
+        />
+      ) : null}
     </Card>
+  );
+}
+
+function MemberDialog({
+  target,
+  member,
+  clients,
+  onClose,
+}: {
+  target: Target;
+  member: MemberRow;
+  clients: ClientOption[];
+  onClose: () => void;
+}) {
+  const t = useTranslations("Settings.members");
+  const [role, setRole] = useState<AssignableRole>(member.role === "owner" ? "admin" : member.role);
+  const [scope, setScope] = useState<string[]>(member.clientIds ?? []);
+  const [pending, startTransition] = useTransition();
+
+  function save() {
+    startTransition(async () => {
+      const result = await updateMemberAction(target.orgSlug, target.clientSlug, member.userId, {
+        role,
+        clientIds: scope.length > 0 ? scope : null,
+      });
+      if (result.ok) {
+        toast.success(t("saved"));
+        onClose();
+      } else toast.error(t("saveFailed"));
+    });
+  }
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t("editOf", { name: member.name ?? member.email })}</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-4">
+          <Field id="member-role" label={t("role")}>
+            <NativeSelect
+              id="member-role"
+              value={role}
+              onChange={(e) => setRole(e.target.value as AssignableRole)}
+              className="w-48"
+            >
+              {ASSIGNABLE_ROLES.map((r) => (
+                <option key={r} value={r}>
+                  {t(`roles.${r}`)}
+                </option>
+              ))}
+            </NativeSelect>
+          </Field>
+          <p className="text-xs text-muted-foreground">{t(`roleHints.${role}`)}</p>
+          {clients.length > 0 ? (
+            <ScopePicker
+              idPrefix="member-scope"
+              clients={clients}
+              value={scope}
+              onChange={setScope}
+            />
+          ) : null}
+        </div>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline">{t("cancel")}</Button>
+          </DialogClose>
+          <Button disabled={pending} onClick={save}>
+            {t("save")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -429,12 +608,16 @@ export function DataRequestsPanel({
 export function ProfileForm({
   target,
   profile,
+  mfa,
 }: {
   target: Target;
   profile: { name: string | null; email: string };
+  mfa: { required: boolean; factors: { id: string; createdAt: string }[] };
 }) {
   const t = useTranslations("Settings");
   const [pending, startTransition] = useTransition();
+  const here = `/app/${target.orgSlug}/${target.clientSlug}/settings?tab=profile`;
+  const addHref = `/mfa?setup=1&next=${encodeURIComponent(here)}`;
 
   return (
     <Card>
@@ -465,6 +648,53 @@ export function ProfileForm({
             {t("save")}
           </Button>
         </form>
+        <section aria-labelledby="mfa-title" className="grid gap-2 border-t pt-4">
+          <h3 id="mfa-title" className="text-sm font-medium">
+            {t("profile.mfaTitle")}
+          </h3>
+          <p className="text-sm">
+            {mfa.factors.length > 0
+              ? t("profile.mfaOn", { count: mfa.factors.length })
+              : t("profile.mfaOff")}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {mfa.required ? t("profile.mfaRequired") : t("profile.mfaOptional")}
+          </p>
+          {mfa.factors.length > 0 ? (
+            <ul className="grid gap-1 text-sm">
+              {mfa.factors.map((f) => {
+                const date = dateFormat.format(new Date(f.createdAt));
+                return (
+                  <li key={f.id} className="flex items-center gap-2">
+                    {t("profile.mfaAdded", { date })}
+                    {/* Admins keep at least one app: removing the last would lock them out. */}
+                    {mfa.required && mfa.factors.length === 1 ? null : (
+                      <Button
+                        variant="ghost"
+                        size="xs"
+                        disabled={pending}
+                        aria-label={t("profile.mfaRemoveOf", { date })}
+                        onClick={() =>
+                          startTransition(async () => {
+                            const result = await removeTotpAction(f.id, here);
+                            if (!result.ok) toast.error(t("profile.mfaRemoveFailed"));
+                          })
+                        }
+                      >
+                        {t("profile.mfaRemove")}
+                      </Button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
+          <Button asChild variant="outline" className="justify-self-start">
+            <a href={addHref}>
+              {mfa.factors.length > 0 ? t("profile.mfaAdd") : t("profile.mfaSetUp")}
+            </a>
+          </Button>
+        </section>
         <div className="grid gap-2 border-t pt-4">
           <Button
             variant="outline"

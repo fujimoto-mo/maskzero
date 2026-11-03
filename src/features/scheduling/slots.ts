@@ -1,4 +1,5 @@
 import holidayJp from "@holiday-jp/holiday_jp";
+import type { Timing } from "./templates";
 
 // Slot math in Japan time (docs/05 §9). Japan has no daylight saving time, so a Japan date and
 // "HH:MM" map to one instant with a fixed +09:00 offset. Pure and deterministic: the caller passes
@@ -175,6 +176,47 @@ export function reminderAt(interviewStart: Date, now: Date): Date | null {
 /** 10:00 Japan time `days` days after `from` (follow-ups, rejection notices). */
 export function morningAfter(from: Date, days: number): Date {
   return jstInstant(addDays(jstDateKey(from), days), "10:00");
+}
+
+/**
+ * When an email with a company-chosen timing goes out for something that happened at `anchor`
+ * (M9-3). "Same day 18:00" after 18:00 means right away; "day before 18:00" needs the interview.
+ * Quiet hours still apply on top (outsideQuietHours).
+ */
+export function timingAt(timing: Timing, anchor: Date, interviewStart?: Date | null): Date | null {
+  switch (timing) {
+    case "immediately":
+      return anchor;
+    case "same_day_18": {
+      const at = jstInstant(jstDateKey(anchor), "18:00");
+      return at > anchor ? at : anchor;
+    }
+    case "day_before_18":
+      return interviewStart ? jstInstant(addDays(jstDateKey(interviewStart), -1), "18:00") : null;
+    case "next_day_10":
+      return morningAfter(anchor, 1);
+    case "plus_3d_10":
+      return morningAfter(anchor, 3);
+    case "plus_1w_10":
+      return morningAfter(anchor, 7);
+  }
+}
+
+/**
+ * The reminders before an interview that are still ahead of `now` (M9-1, M9-2): 5 and 3 days
+ * before at 10:00, the day before at 18:00 and 08:00 on the day, earliest first.
+ */
+export function interviewReminders(
+  start: Date,
+  now: Date,
+): { trigger: "remind_5d" | "remind_3d" | "reminder" | "interview_day"; at: Date }[] {
+  const day = jstDateKey(start);
+  return [
+    { trigger: "remind_5d" as const, at: jstInstant(addDays(day, -5), "10:00") },
+    { trigger: "remind_3d" as const, at: jstInstant(addDays(day, -3), "10:00") },
+    { trigger: "reminder" as const, at: jstInstant(addDays(day, -1), "18:00") },
+    { trigger: "interview_day" as const, at: jstInstant(day, "08:00") },
+  ].filter((r) => r.at > now && r.at < start);
 }
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];

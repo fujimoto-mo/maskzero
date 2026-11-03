@@ -1,5 +1,6 @@
 import { eventType } from "inngest";
 import { z } from "zod";
+import { EVENT_NOTIFICATION_KINDS } from "@/features/notifications/kinds";
 
 // Event payloads carry IDs only: Inngest stores them, and personal data stays in our database.
 
@@ -50,4 +51,27 @@ export const interviewChanged = eventType("interview/changed", {
 /** A person confirmed a rejection: the notice goes out the next morning (docs/02 M9-1). */
 export const applicationRejected = eventType("application/rejected", {
   schema: z.object({ applicationId: z.uuid(), orgId: z.uuid() }),
+});
+
+/** Staff marked an interview done or no-show: a thank-you or a re-booking request follows (M9-2). */
+export const interviewFinished = eventType("interview/finished", {
+  schema: z.object({
+    interviewId: z.uuid(),
+    orgId: z.uuid(),
+    outcome: z.enum(["done", "no_show"]),
+  }),
+});
+
+/** A job was suggested to a talent-pool candidate: email the suggestion (docs/02 M5-6). */
+export const poolSuggested = eventType("pool/suggested", {
+  schema: z.object({ suggestionId: z.uuid(), orgId: z.uuid() }),
+});
+
+/** Something members may also want by email (docs/02 M6-4). */
+export const staffNotify = eventType("staff/notify", {
+  schema: z.object({
+    orgId: z.uuid(),
+    applicationId: z.uuid(),
+    kind: z.enum(EVENT_NOTIFICATION_KINDS),
+  }),
 });

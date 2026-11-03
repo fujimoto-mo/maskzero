@@ -3,7 +3,7 @@ import { z } from "zod";
 import { submitBooking } from "@/features/interviews/candidate-server";
 import { loadPortal } from "@/features/intake/entry-server";
 import { sha256 } from "@/server/crypto/tokens";
-import { interviewScheduled } from "@/server/jobs/events";
+import { interviewScheduled, staffNotify } from "@/server/jobs/events";
 import { sendEventBestEffort } from "@/server/jobs/send";
 import { withinRateLimit } from "@/server/rate-limit";
 
@@ -57,5 +57,13 @@ export async function POST(request: Request, { params }: RouteContext<"/api/p/[t
       },
     });
   }
+  // Manual confirmation, or no pick was free: someone has to act (docs/02 M6-4).
+  await sendEventBestEffort(
+    staffNotify.create({
+      applicationId: portal.scope.applicationId,
+      orgId: portal.scope.orgId,
+      kind: "booking_request",
+    }),
+  );
   return NextResponse.json({ status: result.status });
 }

@@ -11,6 +11,8 @@ import { applications } from "@/server/db/schema";
 
 export const portalUrl = (token: string) => `${getPublicEnv().appUrl}/p/${token}`;
 export const bookingUrl = (token: string) => `${portalUrl(token)}/book`;
+/** Where the candidate reviews or withdraws consents, and stops job suggestions (M3-8, M5-6). */
+export const consentUrl = (token: string) => `${portalUrl(token)}/consent`;
 
 /**
  * The application's personal-page token. Applicants added by hand or from a CSV never had one, so

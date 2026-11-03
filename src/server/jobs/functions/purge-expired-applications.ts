@@ -1,4 +1,4 @@
-import { purgeExpiredBatch } from "@/server/retention";
+import { purgeExpiredBatch, purgeStaleInbound } from "@/server/retention";
 import { inngest } from "../client";
 import { retentionPurgeRequested } from "../events";
 
@@ -17,6 +17,7 @@ export const purgeExpiredApplications = inngest.createFunction(
       total += purged;
       if (purged < BATCH) break;
     }
-    return { purged: total };
+    const inbound = await step.run("purge-stale-inbound", () => purgeStaleInbound());
+    return { purged: total, inbound };
   },
 );

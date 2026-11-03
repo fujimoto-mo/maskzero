@@ -351,7 +351,11 @@ export async function screenApplication(
 }
 
 /** After processing gave up: leave the application with a person instead of stuck in "pending". */
-export async function markProcessingFailed(applicationId: string, orgId: string): Promise<void> {
+export async function markProcessingFailed(
+  applicationId: string,
+  orgId: string,
+  reason: "error" | "quota" = "error",
+): Promise<void> {
   const db = getAdminDb();
   await db.transaction(async (tx) => {
     const [app] = await tx
@@ -377,6 +381,7 @@ export async function markProcessingFailed(applicationId: string, orgId: string)
       applicationId,
       actor: "system",
       type: "screening.failed",
+      payload: { reason },
     });
   });
 }

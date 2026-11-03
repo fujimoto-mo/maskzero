@@ -1,3 +1,5 @@
+import { aiQuotaReached } from "@/features/billing/limits";
+import { getAdminDb } from "@/server/db/admin";
 import {
   documentsToRead,
   markProcessingFailed,
@@ -6,7 +8,12 @@ import {
   verifyDocuments,
 } from "@/server/screening/pipeline";
 import { inngest } from "../client";
-import { applicationRescreen, applicationSubmitted, invitationCreated } from "../events";
+import {
+  applicationRescreen,
+  applicationSubmitted,
+  invitationCreated,
+  staffNotify,
+} from "../events";
 
 const RETRIES = 3;
 
@@ -37,6 +44,14 @@ export const processApplication = inngest.createFunction(
     const lastAttempt = attempt >= RETRIES;
 
     await step.run("verify-documents", () => verifyDocuments(applicationId, orgId));
+    // Over the plan's monthly AI budget: no AI calls, a person reviews (docs/02 M13-4).
+    const overQuota = await step.run("ai-quota", () =>
+      aiQuotaReached(getAdminDb(), orgId, new Date()),
+    );
+    if (overQuota) {
+      await step.run("hand-to-person", () => markProcessingFailed(applicationId, orgId, "quota"));
+      return { skipped: "aiQuota" };
+    }
     const toRead = await step.run("documents-to-read", () =>
       documentsToRead(applicationId, orgId, reread),
     );
@@ -46,6 +61,13 @@ export const processApplication = inngest.createFunction(
     const result = await step.run("screen", () =>
       screenApplication(applicationId, orgId, lastAttempt),
     );
+    // "Needs review" and "rejection to confirm" wait for a person (docs/02 M6-4).
+    if ("verdict" in result && (result.verdict === "check" || result.verdict === "fail_pending")) {
+      await step.sendEvent(
+        "notify-staff",
+        staffNotify.create({ applicationId, orgId, kind: "needs_review" }),
+      );
+    }
     // A pass invites the candidate to book an interview (docs/02 M7-1).
     if ("invitationId" in result && result.invitationId) {
       await step.sendEvent(

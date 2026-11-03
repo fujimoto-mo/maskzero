@@ -28,8 +28,9 @@ export async function sendEmail(email: OutgoingEmail): Promise<SendResult> {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM;
   if (!apiKey || !from) {
-    // Log the subject only: recipients are personal data.
-    console.info("[email] dry run:", email.subject);
+    // Nothing about the email itself: recipients are personal data, and subjects can carry a
+    // candidate's name through {name}. Candidate emails are in the app's send log.
+    console.info("[email] dry run (RESEND_API_KEY or EMAIL_FROM not set)");
     return { id: null, dryRun: true };
   }
 

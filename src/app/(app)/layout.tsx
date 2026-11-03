@@ -20,6 +20,10 @@ export default async function StaffAppLayout({ children }: { children: ReactNode
     "Settings",
     "Scheduling",
     "Interviews",
+    "Clients",
+    "Waiting",
+    "Messages",
+    "Pool",
   );
   return <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>;
 }
