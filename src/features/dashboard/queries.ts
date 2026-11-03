@@ -16,6 +16,7 @@ export type DashboardData = {
   };
   /** Today's interviews in Japan time, earliest first. */
   today: {
+    interviewId: string;
     applicationId: string;
     name: string;
     startsAt: string;
@@ -115,6 +116,7 @@ export async function getDashboard(ctx: MemberCtx, now: Date): Promise<Dashboard
         where ${scope} and a.outcome = 'active' and r.status in ('pending', 'unmatched')
           and i.status in ('sent', 'opened')`),
         tx.execute<{
+          interview_id: string;
           application_id: string;
           name: string;
           starts_at: string;
@@ -122,7 +124,7 @@ export async function getDashboard(ctx: MemberCtx, now: Date): Promise<Dashboard
           round: number;
           meeting_url: string | null;
         }>(sql`
-        select a.id as application_id, c.name, iv.starts_at, iv.ends_at, iv.round, iv.meeting_url
+        select iv.id as interview_id, a.id as application_id, c.name, iv.starts_at, iv.ends_at, iv.round, iv.meeting_url
         from interviews iv
         join applications a on a.id = iv.application_id
         join candidates c on c.id = a.candidate_id
@@ -150,6 +152,7 @@ export async function getDashboard(ctx: MemberCtx, now: Date): Promise<Dashboard
       pendingRequests: requests?.pending ?? 0,
     },
     today: todayRows.map((i) => ({
+      interviewId: i.interview_id,
       applicationId: i.application_id,
       name: i.name,
       startsAt: new Date(i.starts_at).toISOString(),

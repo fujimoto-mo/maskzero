@@ -4,8 +4,9 @@
 
 AI recruiting platform for Japanese recruitment agencies and in-house HR teams. Product and plan:
 [README.md](README.md) and [docs/](docs/). Phase 0 (foundation), Phase 1 work packages 1–11
-(intake and screening), Phase 2 (booking and scheduling) and most of Phase 3 (automation,
-analytics, team, inbound mail, talent pool, plan limits) are built; what's left is tracked in
+(intake and screening), Phase 2 (booking and scheduling), most of Phase 3 (automation,
+analytics, team, inbound mail, talent pool, plan limits) and Phase 4 without the meeting bot and
+live assist (interview workspace, AI report) are built; what's left is tracked in
 [docs/06-roadmap.md](docs/06-roadmap.md).
 
 ## Commands
@@ -59,6 +60,9 @@ local Docker stack is optional and is what the database tests run against.
   Keep candidate names out of subjects you write in code: dry runs log that an email was skipped.
 - **Owners and admins need a second factor.** `requireMember()` sends them (and anyone who set
   one up) to `/mfa` until the session is aal2. Owners cannot remove their last authenticator app.
+- **Interviewers see only the interviews they run.** `private.can_see_client()` excludes them;
+  tables they need carry an extra `…_assigned` policy using `private.interviews_application()`.
+  A new client-owned table an interviewer should read needs such a policy too.
 - **Plan limits** (`src/features/billing`) are checked where clients are added, jobs published and
   documents read; the limits themselves are placeholders until pricing is decided.
 - **"use server" files export async functions only** (types are fine). The production build

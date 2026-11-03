@@ -1,7 +1,7 @@
 import "server-only";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { getAdminDb } from "@/server/db/admin";
-import { applications, consents, organizations } from "@/server/db/schema";
+import { applications, consents, interviews, organizations } from "@/server/db/schema";
 import { recordEvent } from "@/server/events";
 
 // The candidate's consents on their personal page (docs/02 M3-8, M5-6). Consents are append-only:
@@ -11,6 +11,8 @@ export type CandidateScope = { applicationId: string; orgId: string; clientId: s
 
 export type ConsentView = {
   privacyAt: string | null;
+  /** null when the company doesn't record interviews. */
+  recording: boolean | null;
   /** null where the company doesn't suggest other jobs (in-house companies). */
   otherJobs: boolean | null;
 };
@@ -20,7 +22,11 @@ export const CONSENT_PAGE_VERSION = "consent-page-v1";
 
 async function candidateOf(scope: CandidateScope) {
   const [row] = await getAdminDb()
-    .select({ candidateId: applications.candidateId, orgKind: organizations.kind })
+    .select({
+      candidateId: applications.candidateId,
+      orgKind: organizations.kind,
+      records: organizations.recordsInterviews,
+    })
     .from(applications)
     .innerJoin(organizations, eq(organizations.id, applications.orgId))
     .where(and(eq(applications.id, scope.applicationId), eq(applications.orgId, scope.orgId)));
@@ -29,15 +35,9 @@ async function candidateOf(scope: CandidateScope) {
 
 export async function loadConsents(scope: CandidateScope): Promise<ConsentView> {
   const owner = await candidateOf(scope);
-  if (!owner) return { privacyAt: null, otherJobs: null };
+  if (!owner) return { privacyAt: null, recording: null, otherJobs: null };
   const db = getAdminDb();
-  const [[privacy], [otherJobs]] = await Promise.all([
-    db
-      .select({ at: consents.createdAt })
-      .from(consents)
-      .where(and(eq(consents.applicationId, scope.applicationId), eq(consents.kind, "privacy")))
-      .orderBy(desc(consents.createdAt))
-      .limit(1),
+  const latest = (kind: "other_jobs" | "recording") =>
     db
       .select({ granted: consents.granted })
       .from(consents)
@@ -45,14 +45,24 @@ export async function loadConsents(scope: CandidateScope): Promise<ConsentView> 
         and(
           eq(consents.orgId, scope.orgId),
           eq(consents.candidateId, owner.candidateId),
-          eq(consents.kind, "other_jobs"),
+          eq(consents.kind, kind),
         ),
       )
       .orderBy(desc(consents.createdAt))
+      .limit(1);
+  const [[privacy], [otherJobs], [recording]] = await Promise.all([
+    db
+      .select({ at: consents.createdAt })
+      .from(consents)
+      .where(and(eq(consents.applicationId, scope.applicationId), eq(consents.kind, "privacy")))
+      .orderBy(desc(consents.createdAt))
       .limit(1),
+    latest("other_jobs"),
+    latest("recording"),
   ]);
   return {
     privacyAt: privacy?.at.toISOString() ?? null,
+    recording: owner.records ? (recording?.granted ?? true) : null,
     otherJobs: owner.orgKind === "agency" ? (otherJobs?.granted ?? false) : null,
   };
 }
@@ -87,6 +97,53 @@ export async function setOtherJobsConsent(
       actor: "candidate",
       type: granted ? "consent.granted" : "consent.withdrawn",
       payload: { kind: "other_jobs" },
+    });
+  });
+  return true;
+}
+
+/**
+ * The candidate allows or declines recording (docs/02 M11-5). Their booked and future interviews
+ * follow; staff then can't upload a transcript.
+ */
+export async function setRecordingConsent(
+  scope: CandidateScope,
+  granted: boolean,
+): Promise<boolean> {
+  const owner = await candidateOf(scope);
+  if (!owner || !owner.records) return false;
+  await getAdminDb().transaction(async (tx) => {
+    await tx.insert(consents).values({
+      orgId: scope.orgId,
+      clientId: scope.clientId,
+      candidateId: owner.candidateId,
+      applicationId: scope.applicationId,
+      kind: "recording",
+      granted,
+      textVersion: CONSENT_PAGE_VERSION,
+    });
+    await tx
+      .update(interviews)
+      .set({ recordingAllowed: granted })
+      .where(
+        and(
+          eq(interviews.orgId, scope.orgId),
+          inArray(
+            interviews.applicationId,
+            tx
+              .select({ id: applications.id })
+              .from(applications)
+              .where(eq(applications.candidateId, owner.candidateId)),
+          ),
+        ),
+      );
+    await recordEvent(tx, {
+      orgId: scope.orgId,
+      clientId: scope.clientId,
+      applicationId: scope.applicationId,
+      actor: "candidate",
+      type: granted ? "consent.granted" : "consent.withdrawn",
+      payload: { kind: "recording" },
     });
   });
   return true;

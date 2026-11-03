@@ -82,6 +82,7 @@ export function CompanyForm({ target, company }: { target: Target; company: Comp
         senderName: String(form.get("senderName") ?? ""),
         replyTo: String(form.get("replyTo") ?? ""),
         retentionDays: Number(form.get("retentionDays")),
+        recordsInterviews: form.get("recordsInterviews") === "on",
       });
       if (result.ok) toast.success(t("saved"));
       else toast.error(t("failed"));
@@ -144,6 +145,22 @@ export function CompanyForm({ target, company }: { target: Target; company: Comp
               <span className="text-sm">{t("company.days")}</span>
             </div>
           </Field>
+          <div className="flex items-start gap-3">
+            <input
+              id="company-records"
+              name="recordsInterviews"
+              type="checkbox"
+              defaultChecked={company.recordsInterviews}
+              aria-describedby="company-records-hint"
+              className="mt-1 size-4 accent-primary"
+            />
+            <div className="grid gap-1">
+              <Label htmlFor="company-records">{t("company.recordsInterviews")}</Label>
+              <p id="company-records-hint" className="text-xs text-muted-foreground">
+                {t("company.recordsInterviewsHint")}
+              </p>
+            </div>
+          </div>
           <Button type="submit" disabled={pending} className="justify-self-start">
             {t("save")}
           </Button>

@@ -242,6 +242,14 @@ function InvitationItem({
           ) : meeting.location ? (
             <span className="text-muted-foreground">{meeting.location}</span>
           ) : null}
+          {meeting.status === "canceled" ? null : (
+            <Link
+              href={`${base}/meetings/${meeting.id}`}
+              className="text-primary underline-offset-4 hover:underline"
+            >
+              {t("openWorkspace")}
+            </Link>
+          )}
         </div>
       ) : null}
 

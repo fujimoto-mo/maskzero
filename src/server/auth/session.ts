@@ -124,7 +124,7 @@ export async function requireEditor(orgSlug: string, clientSlug: string): Promis
 export async function getHomePath(user: SessionUser): Promise<string | null> {
   const [row] = await withRls(user, (tx) =>
     tx
-      .select({ orgSlug: organizations.slug, clientSlug: clients.slug })
+      .select({ orgSlug: organizations.slug, clientSlug: clients.slug, role: memberships.role })
       .from(memberships)
       .innerJoin(organizations, eq(organizations.id, memberships.orgId))
       .innerJoin(clients, eq(clients.orgId, organizations.id))
@@ -132,5 +132,7 @@ export async function getHomePath(user: SessionUser): Promise<string | null> {
       .orderBy(asc(memberships.createdAt), desc(clients.isDefault), asc(clients.name))
       .limit(1),
   );
-  return row ? `/app/${row.orgSlug}/${row.clientSlug}/dashboard` : null;
+  if (!row) return null;
+  // Interviewers work on the interviews they run (docs/02 M1-4).
+  return `/app/${row.orgSlug}/${row.clientSlug}/${row.role === "interviewer" ? "meetings" : "dashboard"}`;
 }

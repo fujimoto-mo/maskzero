@@ -1,3 +1,4 @@
+import { decisionEffects, interviewReportJob } from "./interviewing";
 import { processApplication } from "./process-application";
 import { purgeExpiredApplications } from "./purge-expired-applications";
 import { rescreenJob } from "./rescreen-job";
@@ -32,4 +33,6 @@ export const functions = [
   poolSuggestionEmail,
   staffNotificationEmail,
   tomorrowDigest,
+  interviewReportJob,
+  decisionEffects,
 ];

@@ -40,6 +40,17 @@ export default async function ConsentPage({ params }: PageProps<"/p/[token]/cons
           <p className="text-muted-foreground">{t("requests")}</p>
         </CardContent>
       </Card>
+      {view.recording !== null ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("recording.title")}</CardTitle>
+            <CardDescription>{t("recording.lead")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ConsentToggle token={token} initial={view.recording} kind="recording" />
+          </CardContent>
+        </Card>
+      ) : null}
       {view.otherJobs !== null ? (
         <Card>
           <CardHeader>

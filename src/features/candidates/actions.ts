@@ -4,11 +4,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { normalizeChannel } from "@/features/intake/channels";
-import {
-  afterSchedulingChange,
-  closeOpenScheduling,
-  issueInvitation,
-} from "@/features/interviews/server";
+import { afterSchedulingChange } from "@/features/interviews/server";
 import { isPlausiblePhone } from "@/lib/contact";
 import { recordAudit } from "@/server/audit";
 import { isAdmin, type MemberCtx, requireEditor, requireMember } from "@/server/auth/session";
@@ -18,7 +14,8 @@ import { withRls } from "@/server/db/rls";
 import { applications, candidates, csvImports, documents, jobs } from "@/server/db/schema";
 import { recordEvent } from "@/server/events";
 import { removeObjects } from "@/server/storage";
-import { allowedChanges, type Outcome, type Stage, type StageChange } from "./stages";
+import { applyStageChange } from "./stage-change";
+import type { StageChange } from "./stages";
 
 const path = (ctx: MemberCtx) => `/app/${ctx.orgSlug}/${ctx.clientSlug}`;
 
@@ -190,27 +187,6 @@ export async function importCsvAction(
   return { ok: true, report };
 }
 
-const CHANGE_STATE: Record<
-  Exclude<StageChange, "next_round">,
-  {
-    stage?: Stage;
-    outcome: Outcome;
-    waitingOn: "candidate" | "staff" | null;
-    nextAction: string | null;
-  }
-> = {
-  offer: {
-    stage: "offer",
-    outcome: "active",
-    waitingOn: "candidate",
-    nextAction: "await_offer_reply",
-  },
-  hired: { stage: "hired", outcome: "hired", waitingOn: null, nextAction: null },
-  withdrawn: { outcome: "withdrawn", waitingOn: null, nextAction: null },
-  rejected: { outcome: "rejected", waitingOn: null, nextAction: null },
-  reopen: { outcome: "active", waitingOn: "staff", nextAction: "review_screening" },
-};
-
 /** Manual stage moves with a reason (docs/02 M5-3). */
 export async function changeStageAction(
   orgSlug: string,
@@ -222,70 +198,7 @@ export async function changeStageAction(
   const ctx = await requireEditor(orgSlug, clientSlug);
   z.uuid().parse(applicationId);
   const note = reason?.trim().slice(0, 200) || null;
-
-  const result = await withRls(ctx, async (tx) => {
-    const [app] = await tx
-      .select({
-        stage: applications.stage,
-        outcome: applications.outcome,
-        round: applications.currentRound,
-      })
-      .from(applications)
-      .where(
-        and(
-          eq(applications.id, applicationId),
-          eq(applications.orgId, ctx.orgId),
-          eq(applications.clientId, ctx.clientId),
-        ),
-      );
-    if (!app || !allowedChanges(app.stage, app.outcome).includes(change)) return null;
-
-    const set =
-      change === "next_round"
-        ? {
-            stage: "booking" as const,
-            currentRound: app.round + 1,
-            waitingOn: "staff" as const,
-            nextAction: "invite_interview",
-          }
-        : {
-            ...CHANGE_STATE[change],
-            closeReason:
-              change === "withdrawn" || change === "rejected"
-                ? (note ?? change)
-                : change === "hired"
-                  ? "hired"
-                  : null,
-          };
-    await tx.update(applications).set(set).where(eq(applications.id, applicationId));
-    // The reason may describe the person, so it stays on the application, not in the event.
-    await recordEvent(tx, {
-      orgId: ctx.orgId,
-      clientId: ctx.clientId,
-      applicationId,
-      actor: "staff",
-      actorId: ctx.userId,
-      type: "application.stage_changed",
-      payload: { change, from: app.stage, fromOutcome: app.outcome },
-    });
-    // The next round gets its own invitation; leaving the process closes what was open.
-    const invitationId =
-      change === "next_round"
-        ? await issueInvitation(tx, {
-            orgId: ctx.orgId,
-            clientId: ctx.clientId,
-            applicationId,
-            round: app.round + 1,
-            actor: "staff",
-            actorId: ctx.userId,
-          })
-        : null;
-    const canceledInterviews =
-      change === "withdrawn" || change === "rejected" || change === "hired"
-        ? await closeOpenScheduling(tx, applicationId)
-        : [];
-    return { invitationId, canceledInterviews };
-  });
+  const result = await withRls(ctx, (tx) => applyStageChange(tx, ctx, applicationId, change, note));
   if (!result) return { ok: false };
   await afterSchedulingChange({
     orgId: ctx.orgId,

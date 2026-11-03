@@ -224,6 +224,12 @@ function TimelineEntry({ item }: { item: TimelineItem }) {
     "message_dry_run",
     "message_failed",
     "message_received",
+    "interview_assigned",
+    "interview_evaluated",
+    "transcript_uploaded",
+    "report_created",
+    "decision_made",
+    "decision_undone",
   ];
   const verdict =
     typeof item.payload.verdict === "string" ? verdicts(item.payload.verdict as Verdict) : "";
