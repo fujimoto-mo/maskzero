@@ -64,6 +64,8 @@ export type EntryView = {
   retentionDays: number;
   notice: string[];
   otherJobsLabel: string | null;
+  /** A /demo sandbox's entry page: visitors are told not to enter real details. */
+  demo: boolean;
 };
 
 type EntryScope = {
@@ -130,6 +132,7 @@ export async function loadEntry(code: string): Promise<EntryContext | null> {
       orgName: organizations.name,
       orgKind: organizations.kind,
       retentionDays: organizations.docRetentionDays,
+      demoExpiresAt: organizations.demoExpiresAt,
       clientId: clients.id,
       clientName: clients.name,
       confirmRejections: screeningSettings.confirmRejections,
@@ -202,6 +205,7 @@ export async function loadEntry(code: string): Promise<EntryContext | null> {
         humanReviewsRejections,
       }),
       otherJobsLabel: agency ? otherJobsNotice(agency) : null,
+      demo: row.demoExpiresAt !== null,
     },
     scope: {
       entryUrlId: row.entryUrlId,

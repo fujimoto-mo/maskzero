@@ -40,3 +40,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# AI evals: rendered documents (results/ is kept)
+/tests/ai-evals/.cache/
+
+# Playwright
+/test-results/
+/playwright-report/

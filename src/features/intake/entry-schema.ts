@@ -61,6 +61,8 @@ export const entrySchema = contactSchema.extend({
   website: z.string().max(200).optional(),
   /** Time from opening the page to submitting; implausibly fast entries are bots. */
   elapsedMs: z.number().int().min(0).max(86_400_000),
+  /** Cloudflare Turnstile token, when Turnstile is set up. */
+  turnstileToken: z.string().max(2048).optional(),
 });
 
 export type EntryInput = z.infer<typeof entrySchema>;

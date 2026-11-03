@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { type FormEvent, type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { FormAlert } from "@/components/form-alert";
+import { Turnstile, turnstileSiteKey } from "@/components/turnstile";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,8 @@ export type ContactRequest = {
   website: string;
   /** Milliseconds between the form mounting and the submission. */
   elapsedMs: number;
+  /** Cloudflare Turnstile token, when Turnstile is set up. */
+  turnstileToken?: string;
 };
 
 const MODES: readonly ContactMode[] = ["download", "consult"];
@@ -128,6 +131,9 @@ export function ContactForm() {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  // Bumped after a failed submit: a Turnstile token works once.
+  const [attempt, setAttempt] = useState(0);
   /** The mode whose submission succeeded; its thank-you panel replaces the form. */
   const [submitted, setSubmitted] = useState<ContactMode | null>(null);
 
@@ -238,6 +244,7 @@ export function ContactForm() {
     const body: ContactRequest = {
       ...request,
       elapsedMs: startedAt === null ? 0 : Math.round(performance.now() - startedAt),
+      turnstileToken: turnstileToken ?? undefined,
     };
 
     try {
@@ -252,6 +259,8 @@ export function ContactForm() {
         setSubmitted(mode);
         return;
       }
+      setTurnstileToken(null);
+      setAttempt((a) => a + 1);
       if (response.status === 400) {
         const serverErrors = readFieldErrors(data);
         // Category is hidden in download mode, so its error (like any unknown field's) goes on top.
@@ -269,6 +278,8 @@ export function ContactForm() {
       setFormError(response.status === 429 ? t("errors.rateLimited") : t("errors.generic"));
     } catch {
       setFormError(t("errors.generic"));
+      setTurnstileToken(null);
+      setAttempt((a) => a + 1);
     } finally {
       setPending(false);
     }
@@ -512,7 +523,13 @@ export function ContactForm() {
         />
       </div>
 
-      <Button type="submit" size="lg" disabled={pending} className="h-12 w-full text-base">
+      <Turnstile key={attempt} action="contact" onToken={setTurnstileToken} />
+      <Button
+        type="submit"
+        size="lg"
+        disabled={pending || (turnstileSiteKey !== null && !turnstileToken)}
+        className="h-12 w-full text-base"
+      >
         {pending ? (
           <>
             <LoaderCircleIcon aria-hidden="true" className="motion-safe:animate-spin" />

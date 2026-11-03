@@ -983,6 +983,18 @@ describe("Phase 5: the AI interviewer stays with the client's editors", () => {
     );
     expect(message).toMatch(/permission denied/);
   });
+
+  it("never lets a company make itself a /demo sandbox (which skips the second factor)", async () => {
+    const message = await rejection(
+      withRls(alice, (tx) =>
+        tx
+          .update(schema.organizations)
+          .set({ demoExpiresAt: new Date(Date.now() + 86_400_000) })
+          .where(eq(schema.organizations.id, aliceOrg)),
+      ),
+    );
+    expect(message).toMatch(/permission denied/);
+  });
 });
 
 describe("accept_invitation()", () => {

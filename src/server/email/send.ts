@@ -25,6 +25,9 @@ function sender(from: string, name: string | undefined): string {
  * development and previews never email real people by accident.
  */
 export async function sendEmail(email: OutgoingEmail): Promise<SendResult> {
+  // Reserved addresses can never receive mail (RFC 2606); /demo users have them. Sending would
+  // only bounce and hurt the sending domain's reputation.
+  if (/\.invalid$/i.test(email.to.trim())) return { id: null, dryRun: true };
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM;
   if (!apiKey || !from) {

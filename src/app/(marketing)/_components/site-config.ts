@@ -20,7 +20,7 @@ export const NAV_ITEMS = [
 ] as const;
 
 /** Indexable marketing pages besides `/` (sitemap order). */
-export const MARKETING_PAGES = ["/security", "/company", "/privacy", "/terms"] as const;
+export const MARKETING_PAGES = ["/demo", "/security", "/company", "/privacy", "/terms"] as const;
 
 /**
  * Legal texts still awaiting legal review: not indexed and left out of the sitemap. Remove a path

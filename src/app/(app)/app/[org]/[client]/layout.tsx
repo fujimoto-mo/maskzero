@@ -29,6 +29,7 @@ import { AI_FEATURE } from "@/features/ai-interview/domain";
 import { listClientOptions } from "@/features/clients/queries";
 import { countUnreadReplies } from "@/features/inbound/queries";
 import { getNotifications } from "@/features/notifications/queries";
+import { DemoBanner } from "@/features/demo/components/demo-banner";
 import { canEdit, isAdmin, requireMember } from "@/server/auth/session";
 
 export const instant = false; // reads the session per request (CLAUDE.md, "Cache Components")
@@ -167,10 +168,13 @@ export default async function ClientLayout({
               items={notifications.items}
               unread={notifications.unread}
             />
-            <span className="hidden text-sm text-muted-foreground sm:inline">{ctx.email}</span>
+            <span className="hidden text-sm whitespace-nowrap text-muted-foreground sm:inline">
+              {ctx.demo ? t("App.demo.user") : ctx.email}
+            </span>
             <SignOutButton label={t("Common.logOut")} />
           </div>
         </header>
+        {ctx.demo ? <DemoBanner userId={ctx.userId} /> : null}
         <main className="flex-1 p-4 md:p-6">{children}</main>
       </div>
       <Toaster position="top-center" richColors />

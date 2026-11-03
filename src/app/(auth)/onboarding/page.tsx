@@ -12,6 +12,8 @@ export const metadata: Metadata = { title: "会社を登録する" };
 
 export default async function OnboardingPage() {
   const user = await requireUser();
+  // A /demo user only ever has their sandbox.
+  if (user.demo) redirect("/demo");
   const home = await getHomePath(user);
   if (home) redirect(home);
 

@@ -1,21 +1,13 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { and, asc, eq, inArray, lt, notLike, sql } from "drizzle-orm";
-import { extractText } from "unpdf";
 import { MAX_DOCUMENT_BYTES } from "@/features/intake/entry-schema";
 import { toCriterion } from "@/features/screening/criteria";
-import {
-  type AiCriterionResult,
-  type Criterion,
-  decide,
-  type Flags,
-  type Verdict,
-} from "@/features/screening/domain";
+import { type Criterion, type Verdict } from "@/features/screening/domain";
 import { stateForVerdict } from "@/features/screening/state";
-import { maskForScreening } from "@/features/screening/text";
-import { AiOutputError, aiMode } from "@/server/ai/client";
+import { AiOutputError } from "@/server/ai/client";
 import { READ_PROMPT_VERSION, readDocument } from "@/server/ai/read-document";
-import { needsAi, SCREEN_PROMPT_VERSION, screenWithAi } from "@/server/ai/screen";
+import { SCREEN_PROMPT_VERSION } from "@/server/ai/screen";
 import { getAdminDb } from "@/server/db/admin";
 import {
   applicationAnswers,
@@ -31,6 +23,7 @@ import { inviteAfterPass } from "@/features/ai-interview/server";
 import { recordEvent } from "@/server/events";
 import { sniffFileType } from "@/server/files";
 import { downloadObject, removeObjects } from "@/server/storage";
+import { judgeApplication, readPdf } from "./judge";
 
 // The screening pipeline (docs/02 M4, docs/05 §6): verify uploads → read each document → screen.
 // Each function is one Inngest step and returns IDs and verdict codes only, never personal data,
@@ -39,16 +32,6 @@ import { downloadObject, removeObjects } from "@/server/storage";
 const MAX_PDF_PAGES = 20;
 
 type DocumentMime = "application/pdf" | "image/jpeg" | "image/png";
-
-async function readPdf(data: Buffer): Promise<{ pages: number; text: string } | null> {
-  try {
-    // pdf.js takes ownership of the bytes it is given, so pass a copy.
-    const { totalPages, text } = await extractText(new Uint8Array(data), { mergePages: true });
-    return { pages: totalPages, text };
-  } catch {
-    return null; // damaged or encrypted
-  }
-}
 
 /**
  * Checks every uploaded-but-unverified document of an application by its bytes: it must exist,
@@ -173,8 +156,6 @@ export async function readOne(
   }
 }
 
-const KIND_LABELS = { resume: "履歴書", cv: "職務経歴書", other: "書類" } as const;
-
 export type ScreenOutcome =
   | {
       verdict: Verdict;
@@ -251,46 +232,10 @@ export async function screenApplication(
     answers[key] = row.value as string | string[] | number;
   }
 
-  const flags: Flags = {};
-  const read = docs.filter((d) => d.readStatus === "done");
-  // A photo the AI could not make out has no text at all, so judge legibility on every read document.
-  const readable = read.filter((d) => d.transcript);
-  if (!docs.some((d) => d.kind === "resume")) flags.noDocuments = true;
-  for (const d of docs.filter((d) => d.readStatus === "failed")) {
-    if (d.readError === "refusal") flags.refusal = true;
-    else flags.invalidOutput = true;
-  }
-  if (read.some((d) => d.legibility !== "good")) flags.lowLegibility = true;
-  if (read.some((d) => d.injectionSuspected)) flags.injection = true;
-
-  const text = readable.map((d) => `【${KIND_LABELS[d.kind]}】\n${d.transcript}`).join("\n\n");
-  const masked = maskForScreening(text, [app.candidateName]);
-
-  let ai: AiCriterionResult[] = [];
-  let model: string | null = null;
-  if (readable.length > 0 && criteria.some(needsAi)) {
-    if (aiMode() === "off") {
-      flags.aiUnavailable = true;
-    } else {
-      try {
-        const result = await screenWithAi({ orgId, criteria, maskedText: masked });
-        ai = result.results;
-        model = result.model;
-        if (result.injection) flags.injection = true;
-      } catch (error) {
-        if (error instanceof AiOutputError) {
-          if (error.reason === "refusal") flags.refusal = true;
-          else flags.invalidOutput = true;
-        } else if (lastAttempt) {
-          flags.aiUnavailable = true;
-        } else {
-          throw error;
-        }
-      }
-    }
-  }
-
-  const decision = decide({ criteria, settings, answers, ai, documentText: masked, flags });
+  const { decision, model } = await judgeApplication(
+    { orgId, candidateName: app.candidateName, criteria, settings, answers, docs },
+    lastAttempt,
+  );
   const state = stateForVerdict(decision.verdict);
 
   const invited = await db.transaction(async (tx) => {

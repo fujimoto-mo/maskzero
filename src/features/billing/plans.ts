@@ -12,6 +12,8 @@ export type Plan = {
 export const PLANS = {
   trial: { id: "trial", limits: { clients: 3, publishedJobs: 5, aiUsdPerMonth: 20 } },
   standard: { id: "standard", limits: { clients: 20, publishedJobs: 50, aiUsdPerMonth: 300 } },
+  /** /demo sandboxes: enough AI for a visitor to try a few applications of their own. */
+  demo: { id: "demo", limits: { clients: 3, publishedJobs: 4, aiUsdPerMonth: 1 } },
   enterprise: {
     id: "enterprise",
     limits: { clients: null, publishedJobs: null, aiUsdPerMonth: null },

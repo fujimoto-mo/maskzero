@@ -33,7 +33,7 @@
 | Forms | React Hook Form + **Zod** | One schema for browser, server and JSON columns |
 | Dates | date-fns + `@date-fns/tz`, `@holiday-jp/holiday_jp` | JST slot math, maintained holiday data |
 | i18n | next-intl, `ja` default | Japanese product, English later |
-| Abuse protection | Cloudflare Turnstile + Upstash Ratelimit | Public entry and contact forms |
+| Abuse protection | Cloudflare Turnstile + a Postgres fixed-window rate limit | Public entry and contact forms, `/demo` |
 | Observability | Sentry (PII scrubbed), Vercel logs, Inngest dashboard, uptime checks | |
 | Tests | Vitest, Playwright, an AI eval harness (§6.6) | |
 | Tooling | pnpm, ESLint, Prettier, GitHub Actions, Renovate | |
@@ -254,6 +254,7 @@ verdict =
 - Labels: per-criterion values and the verdict a recruiter would give.
 - Targets: **0 false rejections on required conditions**, ≥ 85 % verdict agreement, 100 % of injection samples in `check`, quote verification ≥ 98 %, transcript character error rate on photos, latency, cost per application.
 - Run on every prompt or model change (manual CI job, since it costs money); keep results in `tests/ai-evals/results/`.
+- Built (v1): `tests/ai-evals/cases.ts` generates 60 applicants from a fixed seed and labels them from the same facts; `render.ts` prints and photographs them with Playwright and sharp; `run.ts` (`pnpm eval`) reads and screens them with `readDocument()` and `judgeApplication()`, the same code the pipeline runs, and `metrics.ts` scores them. Usage is counted in memory (`sendAiUsageTo()`), so a run writes nothing to a database.
 
 ### 6.7 Cost and latency
 
@@ -271,7 +272,7 @@ verdict =
 | `interview-lifecycle` (P2) | `interview.scheduled` | calendar event + meeting link → confirmation email → `sleepUntil` 5 / 3 / 1 days before → reminders; `cancelOn` `interview.rescheduled` / `interview.canceled` with the same `interviewId` |
 | `invitation-follow-up` (P2) | `invitation.sent` | sleep 3 days → still not booked? → follow-up (max 2) |
 | `retention-purge` | cron nightly | purge applications past `purge_after` |
-| `demo-reset` | cron nightly | restore the sandbox from the seed |
+| `purge-demo-sandboxes` | cron hourly | delete `/demo` sandboxes older than 24 hours, with their users and files |
 | `stuck-sweeper` | cron every 15 min | re-emit events for documents stuck in `pending` |
 
 - **Concurrency:** a per-org key (for example 5 at a time) plus a global limit sized to the Claude rate limit, so one busy customer can't starve the others.
@@ -371,4 +372,4 @@ free(calendar, from, to) =
 - **Fake AI in tests:** `server/ai` is swapped for fixtures; real-model checks live only in `tests/ai-evals`.
 - **Observability:** Sentry, structured logs with IDs only, Inngest dashboard, AI cost per org from `ai_usage`, uptime checks on the demo entry page and a health route.
 - **Feature flags** for P4 / P5 features (AI report, live assist, AI interviewer).
-- **Seed:** `supabase/seed.sql` builds the sandbox company used by local development and `/demo`, with synthetic data only.
+- **Seed:** `supabase/seed.sql` builds the sandbox company used by local development, with synthetic data only. `/demo` doesn't use it: `src/features/demo` builds a fresh sandbox per visitor from `template.ts` and the documents in `files/` (made by `pnpm demo:files` from the eval generator).

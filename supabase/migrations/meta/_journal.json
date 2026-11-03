@@ -99,6 +99,13 @@
       "when": 1793684874540,
       "tag": "20261103054754_ai_interviewer_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793696041199,
+      "tag": "20261103085401_demo_sandbox",
+      "breakpoints": true
     }
   ]
 }

@@ -55,16 +55,16 @@ Code status as of 2026-11-02: everything that runs locally is done and verified;
 | 12 | AI eval set v1 (≥ 50 labeled synthetic résumés incl. photos and injection samples) and runner | [05 §6.6](05-architecture.md#66-evals-before-the-first-pilot) |
 | 13 | `/demo` sandbox with nightly reset | M0-4, M13-6 |
 
-Code status as of 2026-11-02: work packages 1–11 are built and verified locally (browser walkthroughs on the local Supabase stack, with the AI in fake mode); 12 and 13 are not started. The exit criteria below need a staging deployment, an Anthropic API key and a pilot.
+Code status as of 2026-11-03: work packages 1–13 are built and verified locally (browser walkthroughs and a Playwright run on the local Supabase stack, with the AI in fake mode). The eval set has not run against the real model yet. The exit criteria below need a staging deployment, an Anthropic API key and a pilot.
 
 - [x] 1 · Landing page, `/security` `/company`, contact form → `POST /api/contact` (stored, notifies `CONTACT_NOTIFY_EMAIL`), sitemap, robots, OG image
 - [ ] 1 · `/privacy` and `/terms` are drafts: fill the 【…】 placeholders in `src/messages/ja-marketing.json` with legal review, then remove them from `DRAFT_PAGES` (they are `noindex` until then); add `public/guide.pdf` for the materials download
 - [x] 2 · Member invitations (`/invite/[token]`; sign-up keeps the link through email confirmation), profile, sign out everywhere
-- [ ] 2 · Optional TOTP MFA
+- [x] 2 · Optional TOTP MFA (built with Phase 3's two-factor authentication)
 - [x] 3 · Jobs: list, editor with live checks, six images, Indeed / engage / other paste views, AI draft, statuses, sample job and conditions on sign-up
 - [x] 4 · Entry URLs (22 boards + custom), entered counts, on/off, auto-reply text with `{URL}`
 - [x] 5 · Entry page (4 steps, photo resizing, direct signed uploads, consent text that follows the job's settings, honeypot, timing check, rate limits) and personal page. A repeat entry never changes stored details and never shows the personal-page link on screen; the link is emailed
-- [ ] 5 · Turnstile on the entry page
+- [x] 5 · Turnstile on the entry page, the contact form and `/demo` (inactive until `NEXT_PUBLIC_TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` are set; a Cloudflare outage lets forms through, the other checks still apply)
 - [x] 6 · Inngest pipeline: verify bytes → read each document → screen; retries, a fallback to "needs review" when processing fails, and a sweep every 10 minutes for lost events. Untested against the real model until `ANTHROPIC_API_KEY` is set
 - [x] 7 · Criteria editor with presets, required flag, weights, lines, toggles (turning off rejection confirmation is audited and changes the consent text), banned-topic block and age exceptions
 - [x] 8 · Screening list with counts, drawer with reasons and verified quotes, transcripts, manual decisions, back to AI, bulk confirm, re-read, staff uploads
@@ -72,12 +72,14 @@ Code status as of 2026-11-02: work packages 1–11 are built and verified locall
 - [x] 10 · Dashboard counters, per board, 12 months vs last year, funnel, 14 days; notifications; ⌘K search
 - [ ] 10 · Average days per step in the funnel
 - [x] 11 · Company settings, audit log viewer, nightly retention purge, data requests, AI usage per feature, PII encryption
-- [ ] 12 · AI eval set v1 and runner
-- [ ] 13 · `/demo` sandbox
+- [x] 12 · AI eval set v1 (`tests/ai-evals`): 60 synthetic applicants for a sales and a care job, generated from a fixed seed and rendered as text PDFs, scanned PDFs, phone photos (two levels of degradation) and handwritten-style forms, with 7 injection samples. Labels come from the facts the documents are drawn from and the expected verdicts from `decide()`. `pnpm eval` reads and screens them with the production code (`readDocument`, `judgeApplication`) and scores false rejections, verdict agreement, injections caught, quote verification, transcript character error rate, latency and cost; a manual GitHub workflow runs it with the API key
+- [ ] 12 · First live eval run (needs `ANTHROPIC_API_KEY`; roughly US$5–15), then tune prompts until the targets hold
+- [x] 13 · `/demo`: every visitor gets their own sandbox (an agency with two clients, two jobs, applicants already screened, invited and booked, their documents and history) and a throwaway admin user, deleted after 24 hours by an hourly job. Sandboxes never email anyone, skip the second factor (only server code can make a company a sandbox), can't invite members and have a small AI budget. The candidate view is the sandbox's real entry page, with a sample résumé to upload
+- [x] Playwright E2E (`tests/e2e`, `pnpm test:e2e`): apply on a phone → AI screening → recruiter passes → booking confirmed at once → reschedule cancels the first interview; runs locally against a fresh `/demo` sandbox
 - [ ] Apply the Phase 1 migrations to the hosted project (`pnpm db:push`)
 
 **Exit**
-- Playwright E2E on staging: *apply on a phone → AI verdict → recruiter passes or confirms the rejection*.
+- Playwright E2E on staging: *apply on a phone → AI verdict → recruiter passes or confirms the rejection*. *The test exists and passes locally (2026-11-03); it still has to run on staging.*
 - Evals: 0 false rejections on required conditions, ≥ 85 % verdict agreement, 100 % of injection samples in `check`.
 - One pilot (an agency with 1–2 clients, or an in-house team) runs a real job with the privacy policy and consent text in place. At this point mask0 matches the reference's live product.
 
@@ -105,7 +107,7 @@ Code status as of 2026-11-03: work packages 1–6 are built with a fixed meeting
 - [x] 6 · Dashboard: today's interviews and a "日程の確定待ち" counter; notifications for booking requests, unmatched requests, confirmed interviews and tomorrow's interviews
 - [ ] Apply the Phase 1 and Phase 2 migrations to the hosted project (`pnpm db:push`), then add the Resend webhook and `RESEND_WEBHOOK_SECRET`
 
-**Exit:** E2E *pass → invitation → booking → auto-confirm → reminder scheduled → reschedule cancels the old reminder* is green, and a concurrency test produces zero double bookings. *Partly met locally on 2026-11-03:* the flow passed as a manual browser walkthrough (the reminder run was waiting, and the reschedule cancelled it), and `tests/db/booking.test.ts` books one slot from eight concurrent requests exactly once. The flow is not yet an automated Playwright test.
+**Exit:** E2E *pass → invitation → booking → auto-confirm → reminder scheduled → reschedule cancels the old reminder* is green, and a concurrency test produces zero double bookings. *Partly met locally on 2026-11-03:* the flow passed as a manual browser walkthrough (the reminder run was waiting, and the reschedule cancelled it), and `tests/db/booking.test.ts` books one slot from eight concurrent requests exactly once. The flow is now the Playwright test `tests/e2e/hiring.spec.ts` (local; staging pending).
 
 ---
 
@@ -211,8 +213,9 @@ Code status as of 2026-11-03: work package 1 is built and the tooling for 3 is i
 
 ## Immediate next steps
 
-1. Confirm the scope and build order (this document) and the stack ([05](05-architecture.md)).
-2. Decide the domain, sending subdomain and brand basics for **mask0**.
-3. Decide the default retention period and who owns the privacy policy and terms (legal review).
-4. Start Phase 0. The first pull request: Next.js scaffold, Supabase + Drizzle with RLS, auth and onboarding, CI.
-5. Start collecting synthetic résumés for the eval set now; it gates the first pilot.
+As of 2026-11-03 everything up to Phase 5's text interviewer is built and passes locally. What stands between the code and the first pilot:
+
+1. Hosted infrastructure: the Tokyo Supabase project with every migration (`pnpm db:push`), Vercel, Inngest Cloud, the Resend domain with SPF, DKIM and DMARC, Sentry and Turnstile keys (see Phase 0).
+2. The first live eval run (`pnpm eval`, or the "AI evals" workflow with `ANTHROPIC_API_KEY`), then prompt changes until the targets hold.
+3. The Playwright flow on staging, and a walkthrough of `/demo` there.
+4. Legal review of the privacy policy and terms (Phase 1 · 1), then a pilot company.

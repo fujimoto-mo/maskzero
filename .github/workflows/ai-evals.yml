@@ -1,0 +1,36 @@
+name: AI evals
+
+# Manual only: a full run calls Claude for every document of 60 synthetic applications (roughly
+# US$5–15). Run it after changing a prompt, the model or the screening rules (docs/05 §6.6).
+on:
+  workflow_dispatch:
+    inputs:
+      only:
+        description: "Case ids, comma-separated (empty runs every case)"
+        required: false
+        default: ""
+
+jobs:
+  evals:
+    name: Read and screen the eval set
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm eval ${ONLY:+--only "$ONLY"}
+        env:
+          ONLY: ${{ inputs.only }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ai-eval-results
+          path: tests/ai-evals/results/
+          if-no-files-found: ignore

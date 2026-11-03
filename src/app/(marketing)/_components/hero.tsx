@@ -1,5 +1,11 @@
-import { CalendarCheckIcon, FileSearchIcon, MessagesSquareIcon } from "lucide-react";
+import {
+  ArrowRightIcon,
+  CalendarCheckIcon,
+  FileSearchIcon,
+  MessagesSquareIcon,
+} from "lucide-react";
 import { getTranslations } from "next-intl/server";
+import Link from "next/link";
 import { CtaButtons } from "./cta-buttons";
 import { HeroMock } from "./mockups";
 import { Container, stepNumber } from "./primitives";
@@ -66,7 +72,14 @@ export async function Hero() {
           </ol>
 
           <CtaButtons className="mt-8" />
-          <p className="mt-4 text-sm text-muted-foreground">{t("note")}</p>
+          <Link
+            href="/demo"
+            className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+          >
+            {t("demo")}
+            <ArrowRightIcon aria-hidden="true" className="size-4" />
+          </Link>
+          <p className="mt-2 text-sm text-muted-foreground">{t("note")}</p>
         </div>
 
         <HeroMock label={t("visualLabel")} />

@@ -91,6 +91,34 @@ in 設定 → 受信, then post an email in Postmark's inbound format to
 notification from a board for one of the company's job titles appears in 書類選考 → 未エントリー;
 an email from a candidate's address appears in the header's 応募者からの返信.
 
+`/demo` works on the local stack too: each click on 管理画面を開く (in a browser without a session)
+creates a sandbox company and a throwaway admin, both deleted after 24 hours by the hourly
+`purge-demo-sandboxes` job. Sandboxes never email anyone. The applicants' documents come from
+`src/features/demo/files/`; after changing the eval generator, rebuild them with
+`PLAYWRIGHT_CHANNEL=chrome pnpm demo:files`.
+
+Turnstile stays off until `NEXT_PUBLIC_TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` are set.
+To see the widget locally, use Cloudflare's published test keys (the "always passes" pair from
+Cloudflare's Turnstile testing docs) in `.env.local` and restart `pnpm dev`.
+
+## End-to-end tests
+
+`pnpm test:e2e` runs the Playwright flows in `tests/e2e` against the running app: apply on a
+phone, AI screening, a recruiter's pass, booking and rescheduling, in a fresh `/demo` sandbox.
+Start the local stack as above (`pnpm env:local` sets `AI_FAKE=1`), `pnpm dev` and
+`pnpm inngest:dev` first. `PLAYWRIGHT_CHANNEL=chrome` (or `msedge`) uses an installed browser;
+otherwise run `pnpm exec playwright install chromium` once.
+
+## AI evals
+
+`pnpm eval` renders the 60 synthetic applications in `tests/ai-evals` (text PDFs, scans, phone
+photos, handwritten forms, injection samples) and reads and screens them with the production code.
+With `ANTHROPIC_API_KEY` it calls Claude (a full run costs roughly US$5–15), prints each target and
+saves the results in `tests/ai-evals/results/`; commit them with the prompt or model change they
+measured. `AI_FAKE=1 pnpm eval` checks the harness without the model. Rendering uses Playwright
+too (`PLAYWRIGHT_CHANNEL` as above) and caches the files in `tests/ai-evals/.cache/`. The "AI
+evals" workflow on GitHub runs the same thing by hand, with the key from the repository secrets.
+
 ## Before you push
 
 ```bash
