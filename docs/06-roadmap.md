@@ -96,13 +96,14 @@ Code status as of 2026-11-03: work packages 1–13 are built and verified locall
 | 5 | Core emails: invitation, follow-up, confirmation with `.ics`, day-before reminder, rejection; basic template editing; send log; quiet hours; test mode | M9-1, M9-3 (basic), M9-5, M9-6 |
 | 6 | Dashboard: today's interviews, pending requests; notifications for confirmed and tomorrow's interviews | M6-3, M6-4 |
 
-Code status as of 2026-11-03: work packages 1–6 are built with a fixed meeting URL or an on-site address; calendar and video integrations are not started. Verified on the local Supabase stack with the Inngest dev server and the AI in fake mode.
+Code status as of 2026-11-04: work packages 1–6 are built, including the Google Calendar, Meet, Zoom and Teams integrations, which stay unavailable until their OAuth apps are set up. Verified on the local Supabase stack with the Inngest dev server and the AI in fake mode.
 
 - [x] 1 · Invitation on pass and on "next round" (one per round), "to interview" list with the people who need action first, booking link to copy, resend, two follow-ups three days apart while nothing is booked
 - [x] 2 · Rules (common and per-weekday hours, first and later round lengths, buffer, weekends, holidays, booking window, notice, change cutoff), month calendar with per-slot overrides, free-slot engine (pure, unit-tested, Japanese holidays)
 - [x] 3 · Booking page (up to three picks in order, concerns with the company's answers, memo); automatic confirmation of the first free pick, or confirmation by staff; reschedule and withdraw from the personal page; staff mark done, no-show or cancel. Overlaps are impossible: an exclusion constraint per calendar, and bookings on one calendar take turns under an advisory lock
 - [x] 4 · Fixed meeting URL or on-site address
-- [ ] 4 · Google Calendar + Meet, Zoom, Teams (needs OAuth apps; submit Google verification first)
+- [x] 4 · Google Calendar + Meet, Zoom, Teams (設定 → 連携, then the tool on 日程調整): interviews go into the linked Google calendar, its busy times are kept out of the offered slots, and Meet, Zoom or Teams links are created per interview before the confirmation email; a cancellation removes them. Verified locally with `INTEGRATIONS_FAKE=1` and unit tests against stubbed provider APIs
+- [ ] 4 · Create the Google, Zoom and Microsoft OAuth apps (redirect URIs in `.env.example`) and submit Google's verification for the Calendar and Gmail scopes; then try each provider for real
 - [x] 5 · Emails: invitation, follow-ups, confirmation with `.ics`, reminder at 18:00 the day before, rejection at 10:00 the next morning; template editing with merge-field checks and a preview; send log with delivery and bounce status from the Resend webhook; quiet hours 21:00–08:00 for automatic sends; test mode
 - [x] 6 · Dashboard: today's interviews and a "日程の確定待ち" counter; notifications for booking requests, unmatched requests, confirmed interviews and tomorrow's interviews
 - [ ] Apply the Phase 1 and Phase 2 migrations to the hosted project (`pnpm db:push`), then add the Resend webhook and `RESEND_WEBHOOK_SECRET`
@@ -125,10 +126,10 @@ Code status as of 2026-11-03: work packages 1–6 are built with a fixed meeting
 | 8 | Billing and plan limits | M13-4, M13-5 |
 | 9 | Virus scanning of uploads, penetration test, explainer video, optional English UI | [05 §11](05-architecture.md#11-security-checklist) |
 
-Code status as of 2026-11-03: work packages 1, 3–7 are built; 8 has plan limits and a usage page but no billing; 2 and 9 are not started. Verified on the local Supabase stack with the Inngest dev server.
+Code status as of 2026-11-04: work packages 1–7 are built (2 waits for Google's OAuth verification to be used outside the company's own Workspace); 8 has plan limits and a usage page but no billing; 9 is not started. Verified on the local Supabase stack with the Inngest dev server.
 
 - [x] 1 · All triggers: invitation, follow-ups, next round, confirmation, reminders 5 and 3 days before (with the answers to the candidate's concerns), the day before and on the day, thanks, no-show, rejection, CV missing, talent-pool suggestion. Company-chosen timing where it makes sense, per-client wording for agencies, and custom emails (what they follow, when, wording)
-- [ ] 2 · Gmail "send as" (needs Google OAuth verification)
+- [x] 2 · Gmail sender: candidate emails from the connected Google account through the Gmail API (`gmail.send`), with mask0's sender as the fallback when Gmail refuses; the send log marks which emails went through Gmail
 - [x] 3 · Inbound address per company and webhook (Postmark's inbound JSON, Basic auth); job-board notifications become "not yet entered" records, matched when the person enters; nudge text to paste; candidate replies on a messages page, in the timeline and the bell; unmatched mail kept for admins and deleted after 90 days
 - [ ] 3 · Board parsers tuned on real notification emails: today boards are recognised by sender domain or name, and names and jobs by common phrasings and the company's job titles
 - [x] 4 · Analytics: period, cohort funnel with the weakest step and a suggestion, response speed against interview rate, per board, open rate by send hour, days per step
@@ -154,14 +155,15 @@ Code status as of 2026-11-03: work packages 1, 3–7 are built; 8 has plan limit
 | 3 | AI interview report | M11-6 |
 | 4 | Live assist | M11-7 |
 
-Code status as of 2026-11-03: work packages 1 and 3 are built; 2 without the meeting bot; 4 is not started. Verified on the local Supabase stack with the Inngest dev server and the AI in fake mode.
+Code status as of 2026-11-04: work packages 1–4 are built; the meeting bot (2) and live assist (4) need a Recall.ai account to run for real. Verified on the local Supabase stack with the Inngest dev server and the AI in fake mode.
 
 - [x] 1 · Day list (`/meetings`) and interview workspace (`/meetings/[id]`): interviewer assignment, document highlights, the round's purpose, AI question suggestions (standard or deep) to pick, reorder, edit, add to and print; per-interviewer ratings on a five-criterion rubric with notes and a recommendation; decisions (offer, next round, fail, withdrawn) that move the application at once and hold every email for a 10-minute undo window
 - [x] 1 · Interviewers see only the interviews they run, enforced in RLS (completes M1-4); decisions stay with editors, interviewers give their recommendation
 - [x] 2 · Transcripts uploaded from the meeting tool (WebVTT, SRT, text), stored encrypted; a company setting announces recording in the confirmation email, and candidates can decline on their consent page, which blocks transcripts for their interviews
-- [ ] 2 · Meeting bot for Meet / Zoom / Teams and speech-to-text (needs a provider such as Recall.ai)
+- [x] 2 · Meeting bot (Recall.ai) for Meet / Zoom / Teams: joins online interviews when the company records interviews and the candidate hasn't declined, streams Japanese speech-to-text (Deepgram through Recall) to a webhook, and after the interview its transcript feeds the AI report automatically. Verified locally with the fake bot, which replays a sample interview
+- [ ] 2 · A Recall.ai account (`RECALL_API_KEY`, Tokyo region) with the Deepgram key added in its dashboard; then a real Meet, Zoom and Teams interview each
 - [x] 3 · AI report from the transcript: per-criterion score with quotes checked against the transcript and their times, summary, the candidate's needs, rank among the same job and round, shown next to the interviewers' ratings
-- [ ] 4 · Live assist (needs the meeting bot's live transcript)
+- [x] 4 · Live assist (`meetings/[id]/live`): the rolling transcript and up to four suggestions (deep-dive, inconsistency, skill check, missed topic) refreshed every 15–45 seconds from the transcript, the job, the round's purpose, the prepared questions and the candidate's booking concerns
 - [ ] The rubric is fixed in code (`src/features/interviews/rubric.ts`); per-job rubrics later
 - [ ] Apply the migrations to the hosted project (`pnpm db:push`)
 
@@ -213,9 +215,10 @@ Code status as of 2026-11-03: work package 1 is built and the tooling for 3 is i
 
 ## Immediate next steps
 
-As of 2026-11-03 everything up to Phase 5's text interviewer is built and passes locally. What stands between the code and the first pilot:
+As of 2026-11-04 everything up to Phase 5's text interviewer is built and passes locally, including the calendar, meeting, Gmail and meeting-bot integrations the sales deck describes. What stands between the code and the first pilot:
 
 1. Hosted infrastructure: the Tokyo Supabase project with every migration (`pnpm db:push`), Vercel, Inngest Cloud, the Resend domain with SPF, DKIM and DMARC, Sentry and Turnstile keys (see Phase 0).
 2. The first live eval run (`pnpm eval`, or the "AI evals" workflow with `ANTHROPIC_API_KEY`), then prompt changes until the targets hold.
 3. The Playwright flow on staging, and a walkthrough of `/demo` there.
 4. Legal review of the privacy policy and terms (Phase 1 · 1), then a pilot company.
+5. Accounts for the integrations: Google, Zoom and Microsoft OAuth apps (start Google's verification early: it takes weeks) and Recall.ai with Deepgram. Until then those features show as not yet available.

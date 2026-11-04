@@ -84,6 +84,14 @@ export default async function InterviewPage({
             </>
           ) : null}
         </p>
+        {interview.status === "scheduled" && interview.tool !== "onsite" ? (
+          <Link
+            href={`${base}/meetings/${interviewId}/live`}
+            className="justify-self-start text-sm text-primary underline-offset-4 hover:underline"
+          >
+            {t("live.open")}
+          </Link>
+        ) : null}
         <Interviewers
           target={target}
           names={interview.interviewers}

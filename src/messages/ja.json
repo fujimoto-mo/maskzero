@@ -171,7 +171,8 @@
       "reply": "返信が届きました：{name}さん",
       "assigned": "面接官に割り当てられました：{name}さん",
       "aiInterview": "AI面接の確認が必要：{name}さん",
-      "aiHuman": "人との面接の希望：{name}さん"
+      "aiHuman": "人との面接の希望：{name}さん",
+      "meetingFailed": "会議URLを作れませんでした：{name}さん"
     },
     "search": {
       "button": "応募者を検索",
@@ -949,6 +950,7 @@
       "usage": "AIの利用量",
       "profile": "プロフィール",
       "email": "メール",
+      "integrations": "連携",
       "log": "送信履歴",
       "notifications": "通知",
       "inbound": "受信",
@@ -1064,7 +1066,10 @@
         "settings_template_updated": "メールの文面を変更",
         "settings_template_reset": "メールの文面を初期に戻した",
         "settings_test_mode_on": "テストモードをオン",
-        "settings_test_mode_off": "テストモードをオフ"
+        "settings_test_mode_off": "テストモードをオフ",
+        "integration_connected": "外部サービスを連携",
+        "integration_disconnected": "外部サービスの連携を解除",
+        "settings_integrations_updated": "メールの送信元・面接記録の設定を変更"
       }
     },
     "usage": {
@@ -1079,7 +1084,11 @@
       "features": {
         "read": "書類の読み取り",
         "screen": "書類選考",
-        "job_fill": "求人原稿の下書き"
+        "job_fill": "求人原稿の下書き",
+        "questions": "面接の質問の提案",
+        "report": "面接のAIレポート",
+        "ai_interview": "AI面接",
+        "live_assist": "面接中の質問の提案"
       },
       "total": "合計"
     },
@@ -1229,7 +1238,8 @@
         "failed": "失敗",
         "canceled": "取り消し",
         "dry_run": "記録のみ"
-      }
+      },
+      "viaGmail": "Gmailから送信"
     },
     "notifications": {
       "title": "メールでの通知",
@@ -1298,6 +1308,60 @@
       "quotaReached": "今月のAIの利用額が上限に達したため、新しい応募は書類の読み取りと判定を行わず「要確認」に入ります。",
       "change": "プランの変更や請求書でのお支払いは、お問い合わせフォームからご相談ください。",
       "contact": "お問い合わせ"
+    },
+    "integrations": {
+      "title": "外部サービスとの連携",
+      "description": "面接をカレンダーに登録したり、Web会議のURLを面接ごとに作ったり、応募者へのメールを自社のGmailから送ったりできます。連携できるのは、サービスごとに会社で1アカウントです。",
+      "providers": {
+        "google": {
+          "name": "Google",
+          "what": "Googleカレンダーへの面接の登録と空き時間の反映、Google MeetのURL発行、Gmailからのメール送信"
+        },
+        "zoom": {
+          "name": "Zoom",
+          "what": "面接ごとにZoomミーティングを作り、確定メールでURLを案内します"
+        },
+        "microsoft": {
+          "name": "Microsoft Teams",
+          "what": "Outlookの予定表に面接を登録し、TeamsのURLを確定メールで案内します"
+        }
+      },
+      "connect": "連携する",
+      "connectCalendar": "カレンダーを連携",
+      "connectGmail": "Gmailを連携",
+      "reconnect": "もう一度連携する",
+      "disconnect": "連携を解除",
+      "disconnectConfirm": "{name}との連携を解除しますか？ 予約済みの面接のURLはそのまま使えます。",
+      "disconnected": "連携を解除しました",
+      "connectedAs": "{email} で連携中",
+      "broken": "連携が切れています。もう一度連携してください",
+      "googleGrants": "カレンダー {calendar}　Gmail {gmail}",
+      "unavailable": "このサービスはまだ使えません（mask0側で準備中です）。",
+      "connectedNotice": "{name}と連携しました。",
+      "errors": {
+        "denied": "連携が完了しませんでした（許可されませんでした）。",
+        "demo": "デモ環境では外部サービスと連携できません。",
+        "unavailable": "このサービスはまだ使えません。",
+        "failed": "連携できませんでした。時間をおいてもう一度お試しください。"
+      },
+      "sendingTitle": "メールの送信元と面接の記録",
+      "sendingDescription": "応募者へのメールをどのアドレスから送るかと、オンライン面接に同席するAIの名前を決めます。",
+      "emailVia": "応募者へのメールの送信元",
+      "via": {
+        "mask0": "mask0から送る",
+        "mask0Hint": "「会社名 採用担当」の名前で、mask0の送信用アドレスから送ります。応募者の返信は「応募者からの返信」に届きます。",
+        "gmail": "連携したGmailから送る",
+        "gmailHint": "採用担当のGmailアドレスから送ります。返信はそのGmailに届きます。Gmailで送れないときは、mask0から送ります。"
+      },
+      "botName": "面接に同席するAIの表示名",
+      "botNamePlaceholder": "空欄のときは「会社名 面接記録」",
+      "botUnavailable": "AIの面接同席はまだ使えません（mask0側で準備中です）。",
+      "botOn": "オンライン面接にAIが同席し、文字起こしと質問の提案をします。録画・文字起こしを断った応募者の面接には同席しません。",
+      "botOff": "「会社」タブで面接の録画・文字起こしをオンにすると、オンライン面接にAIが同席します。",
+      "save": "保存する",
+      "saved": "保存しました",
+      "failed": "保存できませんでした",
+      "needsGmail": "先にGmailを連携してください"
     }
   },
   "Invite": {
@@ -1342,12 +1406,23 @@
       "url": "オンライン（決まった会議URL）",
       "onsite": "対面",
       "meetingUrl": "会議のURL",
-      "meetingUrlHint": "Google Meet、Zoom、Teams などの固定のURL。カレンダー連携は今後対応します。",
+      "meetingUrlHint": "毎回同じ会議URLを使うときに入れます。面接ごとにURLを作るなら、Google Meet・Zoom・Teamsを選んでください。",
       "address": "面接の場所",
       "save": "保存する",
       "saved": "保存しました",
       "invalid": "入力内容を確認してください。",
-      "weekdayNames": ["日", "月", "火", "水", "木", "金", "土"]
+      "weekdayNames": ["日", "月", "火", "水", "木", "金", "土"],
+      "meet": "Google Meet（面接ごとにURLを発行）",
+      "zoom": "Zoom（面接ごとにURLを発行）",
+      "teams": "Microsoft Teams（面接ごとにURLを発行）",
+      "generatedHint": "面接が決まるたびに会議のURLを作り、確定メールと応募者のページで案内します。",
+      "toolNeeds": "管理者が 設定 → 連携 で連携すると選べます。",
+      "googleCalendar": "Googleカレンダーに面接を登録する",
+      "googleCalendarHint": "連携したGoogleアカウントの予定表に面接を入れます。その予定表で予定が入っている時間は、応募者に候補として出しません。",
+      "googleCalendarId": "カレンダーID",
+      "googleCalendarIdHint": "空欄のときは主カレンダー（primary）。共有カレンダーを使うときは、Googleカレンダーの設定にある「カレンダーID」を入れます。",
+      "googleNotConnected": "Googleカレンダーと連携すると使えます（管理者が 設定 → 連携 から）。",
+      "toolUnavailable": "選んだ面接の方法は、まだ連携されていないため使えません。"
     },
     "calendar": {
       "title": "カレンダー",
@@ -1817,6 +1892,32 @@
       "noTranscript": "先に文字起こしを登録してください。",
       "notAllowed": "この応募は今の段階では判断できません。",
       "decided": "この面接はすでに判断済みです。"
+    },
+    "live": {
+      "open": "ライブ画面を開く",
+      "title": "面接ライブ",
+      "back": "面接の画面に戻る",
+      "hint": "AIが面接に同席し、話した内容を文字にしながら、次に聞くとよい質問を提案します。提案は参考です。聞くかどうかは面接官が決めます。",
+      "transcript": "文字起こし",
+      "waiting": "AIの入室を待っています。面接が始まると、ここに会話が表示されます。",
+      "suggestions": "AIからの提案",
+      "noSuggestions": "会話がもう少し進むと、質問の提案が表示されます。",
+      "updatedAt": "{time} 更新",
+      "kinds": {
+        "deep_dive": "深掘り",
+        "inconsistency": "食い違いの確認",
+        "skill_check": "スキルの確認",
+        "missed_topic": "まだ聞いていないこと"
+      },
+      "prepared": "準備した質問",
+      "noPrepared": "準備した質問はありません。",
+      "concerns": "応募者が気にしていること",
+      "noConcerns": "予約のときに選ばれた項目はありません。",
+      "finished": "面接の記録は終わりました。文字起こしとAIレポートは面接の画面の「記録とレポート」にあります。",
+      "declined": "応募者が録画・文字起こしを希望していないため、AIは同席しません。",
+      "off": "AIの同席はオフです（設定 → 会社 で面接の録画・文字起こしをオンにすると使えます）。",
+      "notOnline": "対面の面接には、AIは同席できません。",
+      "speaker": "話者"
     }
   },
   "AiInterview": {

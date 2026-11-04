@@ -5,10 +5,10 @@
 AI recruiting platform for Japanese recruitment agencies and in-house HR teams. Product and plan:
 [README.md](README.md) and [docs/](docs/). Phase 0 (foundation), Phase 1 (intake and screening,
 including the AI eval set, `/demo` and Turnstile), Phase 2 (booking and scheduling), most of
-Phase 3 (automation, analytics, team, inbound mail, talent pool, plan limits), Phase 4 without the meeting bot and
-live assist (interview workspace, AI report) and Phase 5's text AI interviewer (behind the
-`ai_interviewer` feature flag) are built; what's left is tracked in
-[docs/06-roadmap.md](docs/06-roadmap.md).
+Phase 3 (automation, analytics, team, inbound mail, talent pool, plan limits, Gmail sender), Phase 4
+(interview workspace, AI report, meeting bot and live assist), the Google Calendar / Meet / Zoom /
+Teams integrations and Phase 5's text AI interviewer (behind the `ai_interviewer` feature flag) are
+built; what's left is tracked in [docs/06-roadmap.md](docs/06-roadmap.md).
 
 ## Commands
 
@@ -65,6 +65,12 @@ local Docker stack is optional and is what the database tests run against.
   throwaway companies: they skip the second factor, never email anyone (`sendCandidateMessage()`
   logs them as dry runs, member addresses are `.invalid`) and can't invite members. Anything new
   that sends mail or reaches outside the app must check `ctx.demo` or the org's flag too.
+- **Connected accounts** (`integrations`, `src/server/integrations/`): provider APIs are called
+  through `providerFetch()` / `accessToken()`, which refresh tokens under a row lock and mark a
+  revoked connection for admins. Tokens have no SELECT grant; never read them elsewhere. Whatever
+  is created at a provider for an interview goes into `interviews.external_ids` at once, so
+  `cleanUpMeeting()` can remove it on cancellation. `INTEGRATIONS_FAKE=1` (set by `pnpm env:local`)
+  stands in for Google, Zoom, Microsoft and the Recall.ai meeting bot locally.
 - **No personal data in logs or Sentry.** `src/lib/sentry.ts` scrubs emails and phone numbers.
 - **Interviews are booked only through `bookFirstFree()`** (`src/features/scheduling/server.ts`):
   it takes the calendar's advisory lock, and the `interviews_no_overlap` constraint rejects overlaps.

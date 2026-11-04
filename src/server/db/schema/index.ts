@@ -8,3 +8,4 @@ export * from "./scheduling";
 export * from "./messaging";
 export * from "./interviewing";
 export * from "./ai-interviews";
+export * from "./integrations";

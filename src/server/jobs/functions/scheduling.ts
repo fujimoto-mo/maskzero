@@ -20,6 +20,9 @@ import {
   poolSuggestions,
   clients,
 } from "@/server/db/schema";
+import { recordEvent } from "@/server/events";
+import { IntegrationError } from "@/server/integrations/oauth";
+import { prepareMeeting } from "@/server/integrations/meetings";
 import { sendCandidateMessage } from "@/server/messaging/send";
 import { resolveTiming } from "@/server/messaging/timing";
 import { inngest } from "../client";
@@ -30,6 +33,7 @@ import {
   interviewFinished,
   interviewScheduled,
   invitationCreated,
+  meetingBotRequested,
   invitationResend,
   poolSuggested,
 } from "../events";
@@ -38,6 +42,8 @@ import {
 // send rechecks state first, and its dedupe key keeps retries from sending twice.
 
 const MAX_FOLLOW_UPS = 2;
+/** Tries at creating an interview's meeting before staff are told (the function's retries). */
+const MEETING_ATTEMPTS = 3;
 const FOLLOW_UP_DAYS = 3;
 /** Documents may still be uploading right after an entry. */
 const CV_GRACE_MS = 60 * 60_000;
@@ -151,10 +157,34 @@ export const interviewLifecycle = inngest.createFunction(
     triggers: [interviewScheduled],
     cancelOn: [{ event: interviewChanged.name, match: "data.interviewId" }],
   },
-  async ({ event, step }) => {
+  async ({ event, step, attempt }) => {
     const { interviewId, orgId } = event.data;
     const interview = await step.run("load", () => loadInterview(interviewId, orgId));
     if (!interview || interview.status !== "scheduled") return { skipped: "notScheduled" };
+
+    // The Zoom or Teams meeting, the Meet link and the calendar event come first: the
+    // confirmation carries the link (M8-6). Without it, staff are told and the email says the
+    // link follows.
+    const meeting = await step.run("meeting", async () => {
+      try {
+        return await prepareMeeting(interviewId, orgId);
+      } catch (error) {
+        const code = error instanceof IntegrationError ? error.code : "provider";
+        // A provider hiccup gets the step's retries; a missing or refused account won't recover.
+        if (code === "provider" && attempt < MEETING_ATTEMPTS - 1) throw error;
+        await recordEvent(getAdminDb(), {
+          orgId,
+          clientId: interview.clientId,
+          applicationId: interview.applicationId,
+          actor: "system",
+          type: "meeting.failed",
+          payload: { interviewId, code },
+        });
+        return { status: "failed" as const, code };
+      }
+    });
+    if (meeting.status === "skipped") return { skipped: meeting.reason };
+    await step.sendEvent("bot", meetingBotRequested.create({ interviewId, orgId }));
 
     await step.run("confirmation", () =>
       sendCandidateMessage({

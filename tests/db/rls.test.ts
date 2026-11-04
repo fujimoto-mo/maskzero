@@ -119,6 +119,9 @@ describe("RLS coverage", () => {
     "ai_interview_configs",
     "ai_interview_sessions",
     "ai_interview_reviews",
+    "integrations",
+    "interview_live_segments",
+    "interview_assists",
   ])("gives the anon role no access to %s", async (table) => {
     const message = await rejection(
       admin.begin(async (tx) => {
@@ -994,6 +997,136 @@ describe("Phase 5: the AI interviewer stays with the client's editors", () => {
       ),
     );
     expect(message).toMatch(/permission denied/);
+  });
+});
+
+describe("Connected accounts and the meeting bot", () => {
+  let interviewId = "";
+  let applicationId = "";
+
+  beforeAll(async () => {
+    const [{ id: calendarId }] = await admin<{ id: string }[]>`
+      insert into calendars (org_id, client_id, owner_user_id, name)
+      values (${aliceOrg}, ${aliceDefaultClient}, ${alice.userId}, '連携テスト') returning id`;
+    const [{ id: jobId }] = await admin<{ id: string }[]>`
+      insert into jobs (org_id, client_id, title) values (${aliceOrg}, ${aliceDefaultClient}, '連携職')
+      returning id`;
+    const [{ id: candidateId }] = await admin<{ id: string }[]>`
+      insert into candidates (org_id, name) values (${aliceOrg}, '連携 候補') returning id`;
+    [{ id: applicationId }] = await admin<{ id: string }[]>`
+      insert into applications (org_id, client_id, job_id, candidate_id, source, stage)
+      values (${aliceOrg}, ${aliceDefaultClient}, ${jobId}, ${candidateId}, 'manual', 'scheduled')
+      returning id`;
+    [{ id: interviewId }] = await admin<{ id: string }[]>`
+      insert into interviews (org_id, client_id, application_id, calendar_id, starts_at, ends_at, tool)
+      values (${aliceOrg}, ${aliceDefaultClient}, ${applicationId}, ${calendarId},
+              '2030-04-01T01:00:00Z', '2030-04-01T02:00:00Z', 'meet')
+      returning id`;
+    await admin`insert into interview_live_segments
+                  (org_id, client_id, application_id, interview_id, at, text_enc)
+                values (${aliceOrg}, ${aliceDefaultClient}, ${applicationId}, ${interviewId}, 1, 'v1:x')`;
+    await admin`insert into interview_assists
+                  (org_id, client_id, application_id, interview_id, suggestions_enc, segment_count)
+                values (${aliceOrg}, ${aliceDefaultClient}, ${applicationId}, ${interviewId}, 'v1:y', 1)`;
+  });
+
+  const connect = (user: User, orgId: string) =>
+    withRls(user, (tx) =>
+      tx.insert(schema.integrations).values({
+        orgId,
+        provider: "google",
+        accountEmail: "saiyo@example.com",
+        scopes: ["openid"],
+        tokensEnc: "v1:secret",
+        connectedBy: user.userId,
+      }),
+    );
+
+  it("lets only the company's owners and admins connect an account", async () => {
+    expect(await rejection(connect(bob, aliceOrg))).toMatch(/row-level security/);
+    expect(await rejection(connect(carol, aliceOrg))).toMatch(/row-level security/);
+    await connect(alice, aliceOrg);
+  });
+
+  it("shows members which accounts are connected, never the tokens", async () => {
+    const visible = (user: User) =>
+      withRls(user, (tx) =>
+        tx
+          .select({ orgId: schema.integrations.orgId, email: schema.integrations.accountEmail })
+          .from(schema.integrations),
+      );
+    expect(await visible(carol)).toEqual([{ orgId: aliceOrg, email: "saiyo@example.com" }]);
+    expect(await visible(bob)).toEqual([]);
+    expect(
+      await rejection(
+        withRls(alice, (tx) =>
+          tx.select({ tokens: schema.integrations.tokensEnc }).from(schema.integrations),
+        ),
+      ),
+    ).toMatch(/permission denied/);
+  });
+
+  it("lets only owners and admins disconnect", async () => {
+    const remove = (user: User) =>
+      withRls(user, (tx) =>
+        tx
+          .delete(schema.integrations)
+          .where(eq(schema.integrations.orgId, aliceOrg))
+          .returning({ id: schema.integrations.id }),
+      );
+    expect(await remove(carol)).toEqual([]);
+    expect(await remove(bob)).toEqual([]);
+    expect(await remove(alice)).toHaveLength(1);
+  });
+
+  it("keeps the Gmail sender and the bot's name with owners and admins", async () => {
+    const rename = (user: User, botName: string) =>
+      withRls(user, (tx) =>
+        tx
+          .update(schema.organizations)
+          .set({ botName, emailVia: "gmail" })
+          .where(eq(schema.organizations.id, aliceOrg))
+          .returning({ id: schema.organizations.id }),
+      );
+    expect(await rename(carol, "x")).toEqual([]);
+    expect(await rename(alice, "アリス 面接記録")).toHaveLength(1);
+    const [org] = await admin<{ bot_name: string; email_via: string }[]>`
+      select bot_name, email_via from organizations where id = ${aliceOrg}`;
+    expect(org).toEqual({ bot_name: "アリス 面接記録", email_via: "gmail" });
+    expect(
+      await rejection(admin`update organizations set email_via = 'fax' where id = ${aliceOrg}`),
+    ).toMatch(/organizations_email_via/);
+  });
+
+  it("shows what the bot heard to the client's members only, and lets nobody write it", async () => {
+    const heard = (user: User) =>
+      withRls(user, async (tx) => ({
+        segments: await tx
+          .select({ id: schema.interviewLiveSegments.id })
+          .from(schema.interviewLiveSegments),
+        assists: await tx
+          .select({ id: schema.interviewAssists.interviewId })
+          .from(schema.interviewAssists),
+      }));
+    const mine = await heard(alice);
+    expect(mine.segments).toHaveLength(1);
+    expect(mine.assists).toEqual([{ id: interviewId }]);
+    expect(await heard(bob)).toEqual({ segments: [], assists: [] });
+    // Carol only sees the second client.
+    expect(await heard(carol)).toEqual({ segments: [], assists: [] });
+    expect(
+      await rejection(
+        withRls(alice, (tx) =>
+          tx.insert(schema.interviewLiveSegments).values({
+            orgId: aliceOrg,
+            clientId: aliceDefaultClient,
+            applicationId,
+            interviewId,
+            textEnc: "v1:forged",
+          }),
+        ),
+      ),
+    ).toMatch(/permission denied/);
   });
 });
 

@@ -26,9 +26,11 @@ import {
   messageTemplates,
   organizations,
 } from "@/server/db/schema";
-import { sendEmail } from "@/server/email/send";
+import { sendViaGmail } from "@/server/email/gmail";
+import { type OutgoingEmail, type SendResult, sendEmail } from "@/server/email/send";
 import { recordEvent } from "@/server/events";
 import { inboundAddress } from "@/server/inbound/address";
+import { IntegrationError } from "@/server/integrations/oauth";
 import { bookingUrl, consentUrl, portalTokenFor, portalUrl } from "@/server/portal";
 
 // Candidate emails (docs/02 M9, docs/05 §10). Called from background jobs, on the admin connection.
@@ -71,6 +73,7 @@ export async function sendCandidateMessage(input: {
       replyTo: organizations.replyTo,
       inboundLocalPart: organizations.inboundLocalPart,
       recordsInterviews: organizations.recordsInterviews,
+      emailVia: organizations.emailVia,
       testMode: organizations.testMode,
       demoExpiresAt: organizations.demoExpiresAt,
       clientName: clients.name,
@@ -111,7 +114,13 @@ export async function sendCandidateMessage(input: {
     if (interview) {
       values.interview_at = formatSlot(interview);
       values.tool = TOOL_LABELS[interview.tool] ?? "";
-      values.meeting_url = interview.meetingUrl ?? interview.location ?? "";
+      values.meeting_url =
+        interview.meetingUrl ??
+        interview.location ??
+        // The meeting couldn't be created (M8-6): staff were told and send the link themselves.
+        (interview.tool === "onsite"
+          ? ""
+          : "（オンライン面接のURLは、担当者から追ってお知らせします）");
       values.concerns = await concernsFor(interview.invitationId);
     }
   }
@@ -174,7 +183,7 @@ export async function sendCandidateMessage(input: {
             now: new Date(),
           })
         : null;
-    const result = await sendEmail({
+    const outgoing: OutgoingEmail = {
       to: email,
       subject,
       text: body,
@@ -190,10 +199,24 @@ export async function sendCandidateMessage(input: {
             },
           ]
         : undefined,
-    });
+    };
+    let result: SendResult | null = null;
+    let sentVia: "gmail" | "resend" = "resend";
+    if (app.emailVia === "gmail") {
+      try {
+        // From the recruiter's own Gmail, replies go back there unless the company set an address.
+        result = await sendViaGmail(input.orgId, { ...outgoing, replyTo: app.replyTo || null });
+        sentVia = "gmail";
+      } catch (error) {
+        // A disconnected or refused account is marked for the admins; mask0's sender takes over.
+        if (!(error instanceof IntegrationError)) throw error;
+      }
+    }
+    result ??= await sendEmail(outgoing);
     await log(result.dryRun ? "dry_run" : "sent", {
       providerMessageId: result.id,
       sentAt: new Date(),
+      sentVia,
     });
     return result.dryRun ? "dry_run" : "sent";
   } catch (error) {

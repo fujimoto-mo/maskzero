@@ -131,6 +131,8 @@ export type MessageLogRow = {
   status: (typeof messages.$inferSelect)["status"];
   at: string;
   error: string | null;
+  /** Sent from the company's Gmail rather than mask0's sender (M9-4). */
+  viaGmail: boolean;
 };
 
 /** The client's send log, newest first (docs/02 M9-5). */
@@ -148,6 +150,7 @@ export async function listMessages(ctx: MemberCtx): Promise<MessageLogRow[]> {
         createdAt: messages.createdAt,
         sentAt: messages.sentAt,
         error: messages.error,
+        sentVia: messages.sentVia,
       })
       .from(messages)
       .innerJoin(applications, eq(applications.id, messages.applicationId))
@@ -167,5 +170,6 @@ export async function listMessages(ctx: MemberCtx): Promise<MessageLogRow[]> {
     status: r.status,
     at: (r.sentAt ?? r.createdAt).toISOString(),
     error: r.error,
+    viaGmail: r.sentVia === "gmail",
   }));
 }

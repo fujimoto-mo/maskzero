@@ -68,6 +68,7 @@ mask0.example/p/{token}     candidate personal page
 | `schedule/availability` | Availability rules | `sched` (settings) | P2 |
 | `interviews?d=2026-11-04` | 面接 day list | `iv` | P4 |
 | `interviews/[interviewId]?tab=prep\|live\|report` | Interview workspace | `iv` tabs | P4 |
+| `meetings/[interviewId]/live` | Live view during an online interview: the meeting bot's transcript, the AI's suggestions, prepared questions and the candidate's concerns | `iv` (live) | P4 |
 | `analytics?period=m\|p\|q` | 分析 | `ana` | P3 |
 | `settings/entry-urls` | 応募受付URL + auto-reply text | `settings` → URL | P1 |
 | `settings/templates` | Automated emails and paste texts | `settings` → templates | P2 / P3 |
@@ -123,7 +124,8 @@ Staff-side mutations use **Server Actions**. Route handlers are only for public 
 | `/api/inngest` | GET/POST/PUT | Background job endpoint | Inngest signing key |
 | `/api/webhooks/resend` | POST | Delivery, bounce, complaint | Signature |
 | `/api/webhooks/inbound-email` | POST | Job-board notifications, candidate replies | Provider signature (P3) |
-| `/api/webhooks/meeting-bot` | POST | Recording / transcript ready | Provider signature (P4) |
+| `/api/webhooks/recall/[interviewId]/[token]` | POST | The meeting bot's real-time transcript, one utterance per call | HMAC of the interview id in the path (P4) |
+| `/api/oauth/{google,zoom,microsoft}/start` | GET | Starts connecting an account (owners and admins) | Session; state + PKCE verifier in a short-lived httpOnly cookie (P2 / P3) |
 | `/api/oauth/{google,zoom,microsoft}/callback` | GET | Calendar, meeting and Gmail connections | OAuth state + PKCE (P2 / P3) |
 
 ---

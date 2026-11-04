@@ -28,6 +28,7 @@ const MESSAGES = {
   assigned: "assigned",
   aiInterview: "aiInterview",
   aiHuman: "aiHuman",
+  meetingFailed: "meetingFailed",
 } as const satisfies Record<NotificationKind, string>;
 
 function hrefFor(base: string, item: NotificationItem) {
@@ -42,6 +43,7 @@ function hrefFor(base: string, item: NotificationItem) {
       return `${base}/interviews?tab=scheduled`;
     case "tomorrow":
     case "assigned":
+    case "meetingFailed":
       return item.interviewId ? `${base}/meetings/${item.interviewId}` : `${base}/meetings`;
     case "reply":
       return `${base}/messages`;

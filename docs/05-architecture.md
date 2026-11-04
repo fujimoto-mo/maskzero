@@ -304,6 +304,15 @@ free(calendar, from, to) =
 
 - Implemented as a pure `freeSlots(rules, overrides, busy, now)` with tests for holidays, month boundaries and the window edge (Japan has no DST).
 - **Auto-confirm:** one transaction tries each preferred slot in order and inserts the interview; the exclusion constraint ([04](04-data-model.md#invitations-scheduling-and-interviews-p2-p4)) rejects overlaps, so concurrent requests can't double-book. If none fits, the request becomes `unmatched` and a recruiter is notified.
+- **Google free/busy** (`server/integrations/busy.ts`): a calendar linked to Google (`calendars.google_calendar_id`) also skips the times that calendar is busy. Results are cached for five minutes per calendar, and an error or a disconnected account falls back to mask0's own interviews, so Google never blocks a booking.
+
+### 9.1 Calendars, meetings and the meeting bot
+
+- **Connections** (`integrations`, 設定 → 連携): one Google, Zoom and Microsoft account per company, connected by owners and admins through `/api/oauth/{provider}/start` → provider → `/callback` (authorization code with PKCE; the state and verifier live in a ten-minute httpOnly cookie). Tokens are encrypted with the PII key and have no SELECT grant; server code refreshes them under a row lock (Zoom and Microsoft rotate refresh tokens). A 401 or `invalid_grant` marks the connection `error`, which admins see with a reconnect button. Google consent is incremental: Calendar first, Gmail later, same account.
+- **Per interview** (`server/integrations/meetings.ts`): the `interview-lifecycle` job creates what the interview needs before the confirmation email, saving each id in `interviews.external_ids` as soon as it exists: a Zoom meeting, an Outlook event with a Teams meeting, then a Google Calendar event (with Meet when the tool is `meet`). Google event ids come from the interview id and Graph gets a `transactionId`, so a retried step doesn't create two. If an account is missing or refuses after three tries, a `meeting.failed` event notifies staff and the confirmation says the link will follow. A cancellation (`interview/changed`) removes the event, the meeting and the bot.
+- **Meeting bot** (Recall.ai, M11-5): sent to online interviews when the company records interviews (`records_interviews`) and the candidate hasn't declined. It joins two minutes early and streams each utterance to `/api/webhooks/recall/{interviewId}/{token}`, where the token is an HMAC of the interview id. Utterances are stored encrypted (`interview_live_segments`); 15 minutes after the scheduled end they become the interview's transcript (unless staff uploaded one), the live copy is deleted, and the AI report is requested. Japanese real-time transcription goes through Deepgram via Recall by default (`RECALL_TRANSCRIPT_PROVIDER`).
+- **Live assist** (M11-7): each stored utterance sends `interview/live-updated`; the `live-assist` job, debounced per interview (15 s, at most 45 s), asks Claude (effort low) for up to four suggestions (deep-dive, inconsistency, skill check, missed topic) from the masked transcript, the job, the round's purpose, the prepared questions and the candidate's booking concerns. The live page polls a Server Action every three seconds.
+- **Fake mode** (`INTEGRATIONS_FAKE=1`, set by `pnpm env:local`): connections succeed without leaving the app, meetings get made-up links, Google calendars are busy 12:00–13:00 every day, Gmail sends are dry runs, and the bot replays a sample interview as soon as one is booked.
 
 ---
 
@@ -315,6 +324,7 @@ free(calendar, from, to) =
 - **Japanese deliverability:** carrier addresses (docomo, au, SoftBank) often filter mail from PCs. Ask candidates to allow the sending domain on the done screen and personal page, keep the personal page as the source of truth, and watch bounces per recipient domain.
 - **Inbound (P3):** MX for `inbound.{domain}` → provider → webhook; one parser per job board, covered by fixture tests and alerting when parsing fails.
 - **Google OAuth (P2 / P3):** Calendar scopes and `gmail.send` are sensitive scopes that need Google's OAuth app verification, so start it early. Reading mailboxes would need restricted scopes and a third-party security assessment; the forwarding address avoids that entirely.
+- **Gmail sender (M9-4):** with 設定 → 連携 → 「連携したGmailから送る」, candidate emails go out through the Gmail API from the connected account (a MIME message built in `server/email/mime.ts`, `.ics` attached as usual). Replies then reach that Gmail inbox unless the company set its own reply-to. If Gmail refuses (revoked, missing grant), the email goes out from mask0's sender instead, and the send log shows which path each email took.
 
 ---
 

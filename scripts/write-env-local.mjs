@@ -35,9 +35,11 @@ for (const [key, value] of Object.entries(values)) {
     process.exit(1);
   }
 }
-// Local-only extras: a throwaway encryption key and fake AI, so the whole pipeline runs offline.
+// Local-only extras: a throwaway encryption key, fake AI and fake integrations, so the whole
+// pipeline runs offline.
 values.PII_ENCRYPTION_KEY = randomBytes(32).toString("base64");
 values.AI_FAKE = "1";
+values.INTEGRATIONS_FAKE = "1";
 
 copyFileSync(".env.example", target);
 let env = readFileSync(target, "utf8");

@@ -146,6 +146,8 @@ export const messages = pgTable(
     dedupeKey: text("dedupe_key").notNull().unique(),
     status: messageStatus("status").notNull().default("scheduled"),
     providerMessageId: text("provider_message_id"),
+    /** "resend" (mask0's sender) or "gmail" (the company's own account, M9-4). */
+    sentVia: text("sent_via"),
     scheduledFor: timestamp("scheduled_for", { withTimezone: true }),
     sentAt: timestamp("sent_at", { withTimezone: true }),
     error: text("error"),

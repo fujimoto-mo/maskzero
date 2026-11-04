@@ -23,7 +23,8 @@ export type NotificationKind =
   | "reply"
   | "assigned"
   | "aiInterview"
-  | "aiHuman";
+  | "aiHuman"
+  | "meetingFailed";
 
 export type NotificationItem = {
   kind: NotificationKind;
@@ -51,6 +52,7 @@ const EVENT_KINDS: Record<string, NotificationKind> = {
   "ai_interview.expired": "aiInterview",
   "ai_interview.scoring_failed": "aiInterview",
   "ai_interview.aborted": "aiHuman",
+  "meeting.failed": "meetingFailed",
 };
 
 /**
@@ -103,6 +105,8 @@ export async function getNotifications(
               eq(events.type, "booking.unmatched"),
               eq(events.type, "interview.scheduled"),
               eq(events.type, "message.received"),
+              // The interview's Zoom, Teams or Meet link couldn't be made (M8-6).
+              eq(events.type, "meeting.failed"),
               inArray(events.type, [
                 "ai_interview.scored",
                 "ai_interview.expired",

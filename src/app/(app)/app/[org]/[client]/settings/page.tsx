@@ -33,6 +33,8 @@ import { PlanUsage } from "@/features/billing/components/plan-usage";
 import { loadPlan, loadUsage } from "@/features/billing/limits";
 import { withRls } from "@/server/db/rls";
 import { InboundSettings } from "@/features/inbound/components/inbound-settings";
+import { IntegrationsPanel } from "@/features/integrations/components/integrations-panel";
+import { getIntegrationSettings } from "@/features/integrations/queries";
 import { getInboundSettings } from "@/features/inbound/queries";
 import { NotificationPrefs } from "@/features/notifications/components/notification-prefs";
 import { getNotificationPrefs } from "@/features/notifications/queries";
@@ -48,6 +50,7 @@ const ADMIN_TABS = [
   "company",
   "members",
   "email",
+  "integrations",
   "inbound",
   "requests",
   "audit",
@@ -107,6 +110,16 @@ export default async function SettingsPage({
           selfId={ctx.userId}
           clients={ctx.orgKind === "agency" ? await listClientOptions(ctx) : []}
           {...await listMembers(ctx)}
+        />
+      ) : null}
+      {tab === "integrations" ? (
+        <IntegrationsPanel
+          target={target}
+          settings={await getIntegrationSettings(ctx)}
+          notice={{
+            connected: typeof query.connected === "string" ? query.connected : undefined,
+            error: typeof query.error === "string" ? query.error : undefined,
+          }}
         />
       ) : null}
       {tab === "inbound" ? (
@@ -305,6 +318,9 @@ async function MessageLog({ rows }: { rows: Awaited<ReturnType<typeof listMessag
                   </TableCell>
                   <TableCell className="text-sm">
                     {t(`statuses.${row.status}`)}
+                    {row.viaGmail ? (
+                      <p className="text-xs text-muted-foreground">{t("viaGmail")}</p>
+                    ) : null}
                     {row.error ? <p className="text-xs text-destructive">{row.error}</p> : null}
                   </TableCell>
                 </TableRow>
