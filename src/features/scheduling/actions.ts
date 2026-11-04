@@ -6,7 +6,14 @@ import { z } from "zod";
 import { type MemberCtx, requireEditor } from "@/server/auth/session";
 import { getAdminDb } from "@/server/db/admin";
 import { withRls } from "@/server/db/rls";
-import { availabilityRules, concernOptions, slotOverrides } from "@/server/db/schema";
+import { capabilities, GOOGLE_CALENDAR_ID, toolAvailable } from "@/features/integrations/domain";
+import {
+  availabilityRules,
+  calendars,
+  concernOptions,
+  integrations,
+  slotOverrides,
+} from "@/server/db/schema";
 import { recordEvent } from "@/server/events";
 import { ensureCalendar, toEngineRules } from "./server";
 import { jstDateKey, ruleSlotsOn } from "./slots";
@@ -31,9 +38,15 @@ const rulesSchema = z
     minNoticeHours: z.number().int().min(0).max(336),
     cancelCutoffHours: z.number().int().min(0).max(336),
     confirmMode: z.enum(["auto", "manual"]),
-    tool: z.enum(["url", "onsite"]),
+    tool: z.enum(["url", "onsite", "meet", "zoom", "teams"]),
     fixedMeetingUrl: z.union([z.literal(""), z.url().max(500)]),
     onsiteAddress: z.string().trim().max(200),
+    /** null: not linked to Google; "" or "primary": the account's main calendar (M8-6). */
+    googleCalendarId: z.union([
+      z.null(),
+      z.literal(""),
+      z.string().trim().regex(GOOGLE_CALENDAR_ID),
+    ]),
   })
   .refine((r) => r.commonFrom < r.commonTo, { path: ["commonTo"] })
   .refine((r) => r.tool !== "url" || r.fixedMeetingUrl !== "", { path: ["fixedMeetingUrl"] })
@@ -51,9 +64,30 @@ export async function saveRulesAction(
   const parsed = rulesSchema.safeParse(input);
   if (!parsed.success)
     return { ok: false, field: String(parsed.error.issues[0]?.path[0] ?? "") || null };
-  const { fixedMeetingUrl, onsiteAddress, ...rest } = parsed.data;
+  const { fixedMeetingUrl, onsiteAddress, googleCalendarId, ...rest } = parsed.data;
   const { calendarId } = await ensureCalendar(getAdminDb(), scopeOf(ctx));
-  await withRls(ctx, async (tx) => {
+  return withRls(ctx, async (tx) => {
+    // Meet, Zoom, Teams and the Google calendar need their account connected (設定 → 連携).
+    if ((rest.tool !== "url" && rest.tool !== "onsite") || googleCalendarId !== null) {
+      const can = capabilities(
+        await tx
+          .select({
+            provider: integrations.provider,
+            scopes: integrations.scopes,
+            status: integrations.status,
+          })
+          .from(integrations)
+          .where(eq(integrations.orgId, ctx.orgId)),
+      );
+      if (!toolAvailable(rest.tool, can)) return { ok: false, field: "tool" } as const;
+      if (googleCalendarId !== null && !can.googleCalendar) {
+        return { ok: false, field: "googleCalendarId" } as const;
+      }
+    }
+    await tx
+      .update(calendars)
+      .set({ googleCalendarId: googleCalendarId === null ? null : googleCalendarId || "primary" })
+      .where(and(eq(calendars.id, calendarId), eq(calendars.clientId, ctx.clientId)));
     await tx
       .update(availabilityRules)
       .set({
@@ -74,9 +108,9 @@ export async function saveRulesAction(
       type: "scheduling.rules_updated",
       payload: { calendarId },
     });
+    revalidatePath(path(ctx));
+    return { ok: true } as const;
   });
-  revalidatePath(path(ctx));
-  return { ok: true };
 }
 
 /**

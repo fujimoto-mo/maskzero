@@ -97,6 +97,16 @@ creates a sandbox company and a throwaway admin, both deleted after 24 hours by 
 `src/features/demo/files/`; after changing the eval generator, rebuild them with
 `PLAYWRIGHT_CHANNEL=chrome pnpm demo:files`.
 
+Google, Zoom, Microsoft and the meeting bot run in fake mode locally (`INTEGRATIONS_FAKE=1`, set by
+`pnpm env:local`). In 設定 → 連携, 連携する connects at once with a made-up account. On 日程調整,
+switch on 「Googleカレンダーに面接を登録する」 and pick Google Meet, Zoom or Teams: the fake Google
+calendar is busy 12:00–13:00 every day, so those slots disappear from the booking page, and each
+booking gets a made-up meeting link in its confirmation. With 面接の録画・文字起こし on in 設定 →
+会社, the fake bot replays a sample interview right after a booking: open the interview's
+ライブ画面 to watch the transcript and the AI's suggestions, and two minutes after the last line
+the transcript and AI report appear under 記録とレポート. For the real providers, fill in the
+OAuth and Recall.ai values described in `.env.example`.
+
 Turnstile stays off until `NEXT_PUBLIC_TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` are set.
 To see the widget locally, use Cloudflare's published test keys (the "always passes" pair from
 Cloudflare's Turnstile testing docs) in `.env.local` and restart `pnpm dev`.

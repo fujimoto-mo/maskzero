@@ -45,6 +45,10 @@ export const organizations = pgTable(
     testMode: boolean("test_mode").notNull().default(false),
     /** The company records and transcribes interviews; candidates are told and can decline (M11-5). */
     recordsInterviews: boolean("records_interviews").notNull().default(false),
+    /** The meeting bot's name in the call (M11-5); null = "{company} 面接記録". */
+    botName: text("bot_name"),
+    /** Candidate emails from mask0's sender or the company's connected Gmail (M9-4). */
+    emailVia: text("email_via").notNull().default("mask0"),
     /** Features in trial, switched on by mask0 staff (e.g. "ai_interviewer", docs/05 §12). */
     featureFlags: text("feature_flags")
       .array()
@@ -61,6 +65,8 @@ export const organizations = pgTable(
       .where(sql`${t.demoExpiresAt} is not null`),
     check("organizations_retention_range", sql`${t.docRetentionDays} between 30 and 730`),
     check("organizations_name_length", sql`char_length(${t.name}) between 1 and 100`),
+    check("organizations_email_via", sql`${t.emailVia} in ('mask0', 'gmail')`),
+    check("organizations_bot_name_length", sql`char_length(${t.botName}) between 1 and 40`),
   ],
 );
 

@@ -3,7 +3,8 @@ import { and, asc, eq, gte, lt } from "drizzle-orm";
 import type { MemberCtx } from "@/server/auth/session";
 import { getAdminDb } from "@/server/db/admin";
 import { withRls } from "@/server/db/rls";
-import { concernOptions, interviews } from "@/server/db/schema";
+import { type Capabilities, capabilities } from "@/features/integrations/domain";
+import { calendars, concernOptions, integrations, interviews } from "@/server/db/schema";
 import { ensureCalendar, overridesBetween, type RulesRow } from "./server";
 import {
   addDays,
@@ -38,6 +39,10 @@ export type SchedulingSetup = {
   month: string;
   days: CalendarDay[];
   concerns: { id: string; label: string; answer: string }[];
+  /** The Google calendar interviews go into, if linked (M8-6). */
+  googleCalendarId: string | null;
+  /** Which connected accounts the interview tools can use. */
+  can: Capabilities;
 };
 
 /** The client's availability rules, one month of the calendar, and the concern options. */
@@ -57,8 +62,8 @@ export async function getSchedulingSetup(
   const from = jstInstant(first, "00:00");
   const to = jstInstant(next, "00:00");
 
-  const { overrides, booked, concerns } = await withRls(ctx, async (tx) => {
-    const [overrides, booked, concerns] = await Promise.all([
+  const { overrides, booked, concerns, calendar, connections } = await withRls(ctx, async (tx) => {
+    const [overrides, booked, concerns, [calendar], connections] = await Promise.all([
       overridesBetween(tx, calendarId, from, to),
       tx
         .select({ startsAt: interviews.startsAt, endsAt: interviews.endsAt })
@@ -80,8 +85,20 @@ export async function getSchedulingSetup(
         .from(concernOptions)
         .where(and(eq(concernOptions.orgId, ctx.orgId), eq(concernOptions.clientId, ctx.clientId)))
         .orderBy(asc(concernOptions.position)),
+      tx
+        .select({ googleCalendarId: calendars.googleCalendarId })
+        .from(calendars)
+        .where(eq(calendars.id, calendarId)),
+      tx
+        .select({
+          provider: integrations.provider,
+          scopes: integrations.scopes,
+          status: integrations.status,
+        })
+        .from(integrations)
+        .where(eq(integrations.orgId, ctx.orgId)),
     ]);
-    return { overrides, booked, concerns };
+    return { overrides, booked, concerns, calendar, connections };
   });
 
   const engine = {
@@ -130,5 +147,13 @@ export async function getSchedulingSetup(
         }),
     });
   }
-  return { calendarId, rules, month, days, concerns };
+  return {
+    calendarId,
+    rules,
+    month,
+    days,
+    concerns,
+    googleCalendarId: calendar?.googleCalendarId ?? null,
+    can: capabilities(connections),
+  };
 }

@@ -175,6 +175,18 @@ export const interviewInvitations = pgTable(
   (t) => [uniqueIndex("interview_invitations_application_round_key").on(t.applicationId, t.round)],
 );
 
+/** Ids at the providers, so a cancellation can remove what was created (M8-6, M11-5). */
+export type ExternalIds = {
+  /** Google Calendar event (with Meet when the tool is "meet"). */
+  google?: string;
+  /** Zoom meeting. */
+  zoom?: string;
+  /** Outlook calendar event with the Teams meeting. */
+  microsoft?: string;
+  /** Meeting bot (Recall.ai). */
+  bot?: string;
+};
+
 export type PreferredSlot = { startsAt: string; endsAt: string };
 
 /** The candidate's answer on the booking page: up to three preferred slots (M8-3, M8-4). */
@@ -233,7 +245,8 @@ export const interviews = pgTable(
     tool: interviewTool("tool").notNull(),
     meetingUrl: text("meeting_url"),
     location: text("location"),
-    externalEventId: text("external_event_id"),
+    /** What was created outside for this interview: calendar events, meetings, the bot (M8-6). */
+    externalIds: jsonb("external_ids").$type<ExternalIds>().notNull().default({}),
     status: interviewStatus("status").notNull().default("scheduled"),
     /** Members who run this interview (docs/02 M1-4): interviewers see only their own. */
     interviewerIds: uuid("interviewer_ids")

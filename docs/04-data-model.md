@@ -49,12 +49,12 @@ erDiagram
 
 | Table | Key columns |
 |-------|-------------|
-| `organizations` | id, slug (unique), name, kind (`agency` / `inhouse`), plan, sender_name, reply_to, entry_msg_template (must contain `{URL}`), doc_retention_days (30–730, default 180), inbound_local_part (unique), test_mode (log sends without delivering), feature_flags text[] (R&D features such as `ai_interviewer`; set by mask0 staff only), demo_expires_at (set only by server code on `/demo` sandboxes, plan `demo`; deleted with their user after this), created_at |
+| `organizations` | id, slug (unique), name, kind (`agency` / `inhouse`), plan, sender_name, reply_to, entry_msg_template (must contain `{URL}`), doc_retention_days (30–730, default 180), inbound_local_part (unique), test_mode (log sends without delivering), feature_flags text[] (R&D features such as `ai_interviewer`; set by mask0 staff only), demo_expires_at (set only by server code on `/demo` sandboxes, plan `demo`; deleted with their user after this), records_interviews (recording notice and the meeting bot), email_via (`mask0` / `gmail`), bot_name (the meeting bot's name in the call), created_at |
 | `profiles` | id (= `auth.users.id`), name, email, avatar_url, locale, last_login_at |
 | `memberships` | org_id, user_id, role (`owner` / `admin` / `recruiter` / `interviewer` / `viewer`), client_ids `uuid[]` (null = all clients), status (`active` / `invited` / `disabled`) · PK (org_id, user_id) |
 | `invitations` | id, org_id, email, role, client_ids, token_hash, invited_by, expires_at, accepted_at |
 | `clients` | id, org_id, name, slug, is_default, logo_path, sender_name_override, settings jsonb · unique (org_id, slug) |
-| `integrations` | id, org_id, client_id?, provider (`google` / `zoom` / `microsoft`), account_email, scopes text[], tokens_encrypted, status, connected_by, connected_at (P2 / P3) |
+| `integrations` | id, org_id, provider (`google` / `zoom` / `microsoft`), account_email, scopes text[], tokens_enc (encrypted; no SELECT grant for app users), status (`active` / `error`), error, connected_by, connected_at · unique (org_id, provider). One account per provider and company: members see which, owners and admins connect and disconnect |
 
 ### Jobs and intake (P1)
 
@@ -88,9 +88,11 @@ erDiagram
 | `concern_options` | id, org_id, client_id, label, answer, position |
 | `interview_invitations` | id, org_id, application_id, round, mode (`human` / `ai`), status (`sent` / `opened` / `booked` / `expired` / `canceled`), sent_at, first_opened_at, booked_at, followup_count, expires_at |
 | `booking_requests` | id, org_id, invitation_id, preferred `tstzrange[]` (≤ 3), concern_ids uuid[], memo, status (`pending` / `confirmed` / `unmatched` / `canceled`), created_at |
-| `interviews` | id, org_id, client_id, application_id, calendar_id, round, starts_at, ends_at, interviewer_ids uuid[], tool (`meet` / `zoom` / `teams` / `onsite` / `url`), meeting_url, location, external_event_id, status (`scheduled` / `done` / `no_show` / `canceled`), recording_enabled |
+| `interviews` | id, org_id, client_id, application_id, calendar_id, round, starts_at, ends_at, interviewer_ids uuid[], tool (`meet` / `zoom` / `teams` / `onsite` / `url`), meeting_url, location, external_ids jsonb `{google?, zoom?, microsoft?, bot?}` (what was created at the providers, removed on cancellation), status (`scheduled` / `done` / `no_show` / `canceled`), recording_allowed |
+| `interview_live_segments` | id, org_id, client_id, application_id, interview_id, at (seconds), speaker_enc, text_enc: what the meeting bot heard, written by its webhook; moved into `interview_transcripts` (source `bot`) after the interview and deleted |
+| `interview_assists` | interview_id (PK), org_id, client_id, application_id, suggestions_enc (the AI's latest suggestions during the interview), segment_count |
 | `interview_questions` | interview_id, mode (`standard` / `deep`), items jsonb `[{group, question, rationale, picked, order}]`, model (P4) |
-| `interview_transcripts` | interview_id (PK), provider, storage_path, segments jsonb `[{t, speaker, text}]`, language (P4) |
+| `interview_transcripts` | interview_id (PK), segments_enc (encrypted `[{t, speaker, text}]`), segment_count, source (`upload` / `bot`), uploaded_by (P4) |
 | `interview_reports` | id, interview_id, kind (`ai` / `human`), author_id?, scores jsonb, total, summary, needs jsonb, recommendation, model, created_at (P4) |
 | `decisions` | id, org_id, application_id, interview_id?, decision (`pass` / `next_round` / `fail` / `withdrawn` / `offer` / `hired`), decided_by, note, effective_at (now + undo window), undone_at |
 | `ai_interview_configs` | job_id (PK), org_id, client_id, enabled, questions jsonb (id, text, rubric, followUps 0–2; up to 10), time_limit_minutes (10–90), deadline_days (2–14), updated_by, created_at, updated_at (P5) |

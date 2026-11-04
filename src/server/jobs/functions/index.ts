@@ -1,5 +1,6 @@
 import { aiInterviewLifecycle, aiInterviewScoring, aiInterviewTimeLimit } from "./ai-interview";
 import { decisionEffects, interviewReportJob } from "./interviewing";
+import { liveAssist, meetingBot, meetingCleanup } from "./meetings";
 import { processApplication } from "./process-application";
 import { purgeDemoSandboxes } from "./purge-demo-sandboxes";
 import { purgeExpiredApplications } from "./purge-expired-applications";
@@ -38,6 +39,9 @@ export const functions = [
   tomorrowDigest,
   interviewReportJob,
   decisionEffects,
+  meetingCleanup,
+  meetingBot,
+  liveAssist,
   aiInterviewLifecycle,
   aiInterviewTimeLimit,
   aiInterviewScoring,

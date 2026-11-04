@@ -12,6 +12,7 @@ import {
   slotOverrides,
 } from "@/server/db/schema";
 import { recordEvent } from "@/server/events";
+import { externalBusy } from "@/server/integrations/busy";
 import { type AvailabilityRules, freeSlots, type Interval, isFree, windowEnd } from "./slots";
 
 // Server side of scheduling: calendars, rules, free slots and confirmation. Callers pass the
@@ -116,14 +117,22 @@ export async function loadFreeSlots(
   now: Date,
 ): Promise<Interval[]> {
   const end = windowEnd(toEngineRules(rules), now);
-  const [overrides, busy] = await Promise.all([
+  const [overrides, busy, [calendar]] = await Promise.all([
     overridesBetween(conn, calendarId, now, end),
     busyIntervals(conn, calendarId, now, end),
+    conn
+      .select({ orgId: calendars.orgId, googleCalendarId: calendars.googleCalendarId })
+      .from(calendars)
+      .where(eq(calendars.id, calendarId)),
   ]);
+  // A calendar linked to Google also skips the times the company is busy there (M8-6).
+  const outside = calendar?.googleCalendarId
+    ? await externalBusy(calendar.orgId, calendar.googleCalendarId, now, end)
+    : [];
   return freeSlots({
     rules: toEngineRules(rules),
     overrides,
-    busy,
+    busy: outside.length ? [...busy, ...outside] : busy,
     now,
     durationMinutes: durationFor(rules, round),
   });

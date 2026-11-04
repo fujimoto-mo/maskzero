@@ -41,6 +41,8 @@ export default async function SchedulingPage({
         {...target}
         rules={setup.rules}
         canEdit={editor}
+        can={setup.can}
+        googleCalendarId={setup.googleCalendarId}
       />
       <ConcernsEditor {...target} concerns={setup.concerns} canEdit={editor} />
     </div>

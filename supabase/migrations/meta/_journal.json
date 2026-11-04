@@ -106,6 +106,27 @@
       "when": 1793696041199,
       "tag": "20261103085401_demo_sandbox",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1793734453002,
+      "tag": "20261103193412_integrations",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793734455551,
+      "tag": "20261103193415_drop_external_event_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793734472744,
+      "tag": "20261103193432_integrations_rls",
+      "breakpoints": true
     }
   ]
 }

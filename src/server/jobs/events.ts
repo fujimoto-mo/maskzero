@@ -48,6 +48,16 @@ export const interviewChanged = eventType("interview/changed", {
   schema: z.object({ interviewId: z.uuid(), orgId: z.uuid() }),
 });
 
+/** An interview's meeting link exists: the meeting bot may be sent to it (docs/02 M11-5). */
+export const meetingBotRequested = eventType("interview/bot-requested", {
+  schema: z.object({ interviewId: z.uuid(), orgId: z.uuid() }),
+});
+
+/** The meeting bot heard more of the interview: refresh the AI's suggestions (M11-7). */
+export const liveTranscriptUpdated = eventType("interview/live-updated", {
+  schema: z.object({ interviewId: z.uuid(), orgId: z.uuid() }),
+});
+
 /** A person confirmed a rejection: the notice goes out the next morning (docs/02 M9-1). */
 export const applicationRejected = eventType("application/rejected", {
   schema: z.object({ applicationId: z.uuid(), orgId: z.uuid() }),

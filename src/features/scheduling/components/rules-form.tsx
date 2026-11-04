@@ -11,12 +11,21 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { saveRulesAction } from "../actions";
+import type { Capabilities, InterviewTool } from "@/features/integrations/domain";
 import type { RulesRow } from "../server";
 
 type Mode = "common" | "custom" | "off";
 type Day = { mode: Mode; from: string; to: string };
 
 const WEEKDAYS = ["0", "1", "2", "3", "4", "5", "6"] as const;
+const TOOLS = ["url", "meet", "zoom", "teams", "onsite"] as const satisfies InterviewTool[];
+const NEEDS: Record<InterviewTool, keyof Capabilities | null> = {
+  url: null,
+  onsite: null,
+  meet: "googleCalendar",
+  zoom: "zoom",
+  teams: "teams",
+};
 
 function Row({
   label,
@@ -41,11 +50,15 @@ export function RulesForm({
   clientSlug,
   rules,
   canEdit,
+  can,
+  googleCalendarId,
 }: {
   orgSlug: string;
   clientSlug: string;
   rules: RulesRow;
   canEdit: boolean;
+  can: Capabilities;
+  googleCalendarId: string | null;
 }) {
   const t = useTranslations("Scheduling.rules");
   const names = t.raw("weekdayNames") as string[];
@@ -61,7 +74,9 @@ export function RulesForm({
     minNoticeHours: rules.minNoticeHours,
     cancelCutoffHours: rules.cancelCutoffHours,
     confirmMode: rules.confirmMode,
-    tool: rules.tool === "onsite" ? ("onsite" as const) : ("url" as const),
+    tool: rules.tool as InterviewTool,
+    linkGoogle: googleCalendarId !== null,
+    googleCalendarId: googleCalendarId === "primary" ? "" : (googleCalendarId ?? ""),
     fixedMeetingUrl: rules.fixedMeetingUrl ?? "",
     onsiteAddress: rules.onsiteAddress ?? "",
   });
@@ -90,9 +105,14 @@ export function RulesForm({
       }),
     );
     startTransition(async () => {
-      const result = await saveRulesAction(orgSlug, clientSlug, { ...form, weekly });
+      const { linkGoogle, googleCalendarId: calendarId, ...rest } = form;
+      const result = await saveRulesAction(orgSlug, clientSlug, {
+        ...rest,
+        weekly,
+        googleCalendarId: linkGoogle ? calendarId.trim() : null,
+      });
       if (result.ok) toast.success(t("saved"));
-      else toast.error(t("invalid"));
+      else toast.error(t(result.field === "tool" ? "toolUnavailable" : "invalid"));
     });
   }
 
@@ -249,17 +269,27 @@ export function RulesForm({
             <legend className="mb-2 text-sm font-medium">{t("tool")}</legend>
             <RadioGroup
               value={form.tool}
-              onValueChange={(v) => set({ tool: v as "url" | "onsite" })}
-              className="flex flex-wrap gap-5"
+              onValueChange={(v) => set({ tool: v as InterviewTool })}
+              className="grid gap-2"
             >
-              {(["url", "onsite"] as const).map((tool) => (
-                <Label key={tool} className="font-normal">
-                  <RadioGroupItem value={tool} />
-                  {t(tool)}
-                </Label>
-              ))}
+              {TOOLS.map((tool) => {
+                const need = NEEDS[tool];
+                // A tool chosen before its account was disconnected stays visible as chosen.
+                const off = need !== null && !can[need] && form.tool !== tool;
+                return (
+                  <Label key={tool} className="font-normal">
+                    <RadioGroupItem value={tool} disabled={off} />
+                    {t(tool)}
+                    {off ? (
+                      <span className="text-xs text-muted-foreground">{t("toolNeeds")}</span>
+                    ) : null}
+                  </Label>
+                );
+              })}
             </RadioGroup>
-            {form.tool === "url" ? (
+            {form.tool === "meet" || form.tool === "zoom" || form.tool === "teams" ? (
+              <p className="max-w-xl text-xs text-muted-foreground">{t("generatedHint")}</p>
+            ) : form.tool === "url" ? (
               <div className="grid max-w-xl gap-2">
                 <Label htmlFor="fixedMeetingUrl">{t("meetingUrl")}</Label>
                 <Input
@@ -282,6 +312,38 @@ export function RulesForm({
                 />
               </div>
             )}
+          </fieldset>
+
+          <fieldset className="grid gap-3">
+            <legend className="sr-only">{t("googleCalendar")}</legend>
+            <div className="flex items-start gap-3">
+              <Switch
+                id="linkGoogle"
+                checked={form.linkGoogle}
+                disabled={!can.googleCalendar && !form.linkGoogle}
+                onCheckedChange={(v) => set({ linkGoogle: v })}
+                aria-describedby="linkGoogle-hint"
+              />
+              <div className="grid gap-1">
+                <Label htmlFor="linkGoogle">{t("googleCalendar")}</Label>
+                <p id="linkGoogle-hint" className="max-w-xl text-xs text-muted-foreground">
+                  {can.googleCalendar ? t("googleCalendarHint") : t("googleNotConnected")}
+                </p>
+              </div>
+            </div>
+            {form.linkGoogle ? (
+              <div className="grid max-w-xl gap-2">
+                <Label htmlFor="googleCalendarId">{t("googleCalendarId")}</Label>
+                <Input
+                  id="googleCalendarId"
+                  placeholder="primary"
+                  maxLength={400}
+                  value={form.googleCalendarId}
+                  onChange={(e) => set({ googleCalendarId: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground">{t("googleCalendarIdHint")}</p>
+              </div>
+            ) : null}
           </fieldset>
 
           {canEdit ? (
