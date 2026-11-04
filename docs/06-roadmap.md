@@ -70,7 +70,7 @@ Code status as of 2026-11-03: work packages 1–13 are built and verified locall
 - [x] 8 · Screening list with counts, drawer with reasons and verified quotes, transcripts, manual decisions, back to AI, bulk confirm, re-read, staff uploads
 - [x] 9 · Candidate list (keyset pages, name or exact-email search), drawer with timeline, stage changes, manual add, CSV import (Shift_JIS / UTF-8) and export (UTF-8 BOM, audited), deletion
 - [x] 10 · Dashboard counters, per board, 12 months vs last year, funnel, 14 days; notifications; ⌘K search
-- [ ] 10 · Average days per step in the funnel
+- [x] 10 · Average days per step in the funnel (on the analytics page, Phase 3 · 4)
 - [x] 11 · Company settings, audit log viewer, nightly retention purge, data requests, AI usage per feature, PII encryption
 - [x] 12 · AI eval set v1 (`tests/ai-evals`): 60 synthetic applicants for a sales and a care job, generated from a fixed seed and rendered as text PDFs, scanned PDFs, phone photos (two levels of degradation) and handwritten-style forms, with 7 injection samples. Labels come from the facts the documents are drawn from and the expected verdicts from `decide()`. `pnpm eval` reads and screens them with the production code (`readDocument`, `judgeApplication`) and scores false rejections, verdict agreement, injections caught, quote verification, transcript character error rate, latency and cost; a manual GitHub workflow runs it with the API key
 - [ ] 12 · First live eval run (needs `ANTHROPIC_API_KEY`; roughly US$5–15), then tune prompts until the targets hold
@@ -134,7 +134,7 @@ Code status as of 2026-11-04: work packages 1–7 are built (2 waits for Google'
 - [ ] 3 · Board parsers tuned on real notification emails: today boards are recognised by sender domain or name, and names and jobs by common phrasings and the company's job titles
 - [x] 4 · Analytics: period, cohort funnel with the weakest step and a suggestion, response speed against interview rate, per board, open rate by send hour, days per step
 - [x] 5 · Role and client scope per member and on invitations, clients page, client switcher; TOTP two-factor authentication, required for owners and admins (and for anyone who set it up)
-- [ ] 5 · Interviewers limited to their own interviews (needs interviewer assignment, Phase 4); until then they read like viewers
+- [x] 5 · Interviewers limited to their own interviews, enforced in RLS once Phase 4 added interviewer assignment (Phase 4 · 1)
 - [x] 6 · Per-member email notifications (new application, needs review, booking requests, confirmed interviews, replies, a daily digest of tomorrow's interviews at 18:00)
 - [x] 7 · Talent pool (opted-in candidates, suggest a published job of any client once; the email carries a talent-pool entry URL) and a consent page with one-click opt-out
 - [x] 8 · Plan limits for clients, published jobs and monthly AI spend (screening pauses into "needs review" at the cap) and a usage page. The numbers in `src/features/billing/plans.ts` are placeholders until pricing is set
