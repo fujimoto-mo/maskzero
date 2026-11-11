@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
+import { CandidateHeader, candidateHeading } from "@/components/candidate-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,11 +48,14 @@ export default async function PortalPage({ params }: PageProps<"/p/[token]">) {
 
   return (
     <div className="grid gap-5">
-      <div className="grid gap-1">
+      <CandidateHeader company={view.company} label={view.jobTitle} />
+      <div className="grid gap-1.5">
         <p className="text-sm text-muted-foreground">
           {t("applied", { company: view.company, job: view.jobTitle })}
         </p>
-        <h1 className="text-xl font-bold">{t("greeting", { name: view.candidateName })}</h1>
+        <h1 className={candidateHeading("text-xl")}>
+          {t("greeting", { name: view.candidateName })}
+        </h1>
         {view.agency ? (
           <p className="text-xs text-muted-foreground">
             {t("agencyNote", { agency: view.agency })}

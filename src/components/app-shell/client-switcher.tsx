@@ -28,7 +28,11 @@ export function ClientSwitcher({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="max-w-56" aria-label={t("label")}>
+        <Button
+          variant="outline"
+          className="h-9 max-w-32 rounded-full border-transparent bg-card px-3.5 ring-1 ring-foreground/[0.07] sm:max-w-56"
+          aria-label={t("label")}
+        >
           <Building2Icon aria-hidden />
           <span className="truncate">{active?.name ?? current}</span>
           <ChevronsUpDownIcon aria-hidden className="opacity-60" />

@@ -62,15 +62,16 @@ export function CommandSearch({ base }: { base: string }) {
     <>
       <Button
         variant="outline"
-        size="sm"
-        className="gap-2 text-muted-foreground"
+        className="h-9 gap-2 rounded-full border-transparent bg-card pr-2 pl-3.5 font-normal text-muted-foreground ring-1 ring-foreground/[0.07] sm:w-64 sm:justify-start"
         onClick={() => setOpen(true)}
         aria-label={t("button")}
         aria-keyshortcuts="Control+K Meta+K"
       >
         <SearchIcon aria-hidden />
         <span className="hidden sm:inline">{t("button")}</span>
-        <kbd className="hidden rounded border px-1 text-[10px] sm:inline">⌘K</kbd>
+        <kbd className="ml-auto hidden rounded-md bg-muted px-1.5 py-0.5 font-sans text-[10px] sm:inline">
+          ⌘K
+        </kbd>
       </Button>
       <Dialog
         open={open}

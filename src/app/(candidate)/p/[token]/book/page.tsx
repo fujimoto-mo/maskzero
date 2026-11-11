@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
+import { CandidateHeader, candidateHeading } from "@/components/candidate-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -37,6 +38,7 @@ export default async function BookingPage({ params }: PageProps<"/p/[token]/book
   if (schedule.interview) {
     return (
       <div className="grid gap-4">
+        <CandidateHeader company={portal.view.company} label={portal.view.jobTitle} />
         <Card>
           <CardHeader>
             <CardTitle>{t("alreadyBooked")}</CardTitle>
@@ -60,6 +62,7 @@ export default async function BookingPage({ params }: PageProps<"/p/[token]/book
   ) {
     return (
       <div className="grid gap-4">
+        <CandidateHeader company={portal.view.company} label={portal.view.jobTitle} />
         <Card>
           <CardHeader>
             <CardTitle>{t("closed")}</CardTitle>
@@ -75,8 +78,9 @@ export default async function BookingPage({ params }: PageProps<"/p/[token]/book
 
   return (
     <div className="grid gap-5">
+      <CandidateHeader company={portal.view.company} label={portal.view.jobTitle} />
       <div className="grid gap-2">
-        <h1 className="text-xl font-bold">{t("title")}</h1>
+        <h1 className={candidateHeading("text-xl")}>{t("title")}</h1>
         <p className="text-sm">
           {t("lead", {
             company: portal.view.company,

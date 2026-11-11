@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { pillTab } from "@/components/pill-tab";
 import {
   Table,
   TableBody,
@@ -39,7 +40,6 @@ import { getInboundSettings } from "@/features/inbound/queries";
 import { NotificationPrefs } from "@/features/notifications/components/notification-prefs";
 import { getNotificationPrefs } from "@/features/notifications/queries";
 import { getMessageSettings, listMessages } from "@/features/messaging/queries";
-import { cn } from "@/lib/utils";
 import { isAdmin, requireMember } from "@/server/auth/session";
 
 export const instant = false; // reads the session per request (CLAUDE.md, "Cache Components")
@@ -85,16 +85,13 @@ export default async function SettingsPage({
   return (
     <div className="mx-auto grid max-w-5xl gap-6">
       <h1 className="text-2xl font-bold">{t("title")}</h1>
-      <nav aria-label={t("title")} className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
+      <nav aria-label={t("title")} className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
         {tabs.map((item) => (
           <Link
             key={item}
             href={`${base}?tab=${item}`}
             aria-current={item === tab ? "page" : undefined}
-            className={cn(
-              "shrink-0 rounded-lg px-3 py-1.5 text-sm transition-colors hover:bg-muted",
-              item === tab && "bg-muted font-medium",
-            )}
+            className={pillTab(item === tab)}
           >
             {t(`tabs.${item}`)}
           </Link>

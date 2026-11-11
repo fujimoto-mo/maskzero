@@ -1,8 +1,9 @@
 "use client";
 
-import { CheckCircle2Icon, ChevronLeftIcon } from "lucide-react";
+import { CheckCircle2Icon, CheckIcon, ChevronLeftIcon, FileTextIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { CANDIDATE_CTA, CandidateHeader, candidateHeading } from "@/components/candidate-header";
 import { CopyButton } from "@/components/copy-button";
 import { FormAlert } from "@/components/form-alert";
 import { NativeSelect } from "@/components/native-select";
@@ -208,18 +209,21 @@ export function EntryWizard({ entry }: { entry: EntryView }) {
 
   if (!entry.open) {
     return (
-      <Card>
-        <CardHeader>
-          <p className="text-sm text-muted-foreground">{entry.company}</p>
-          <CardTitle>{t("closed.title")}</CardTitle>
-          <CardDescription>{t("closed.body")}</CardDescription>
-        </CardHeader>
-      </Card>
+      <div className="grid gap-6">
+        <CandidateHeader company={entry.company} />
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("closed.title")}</CardTitle>
+            <CardDescription>{t("closed.body")}</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
     );
   }
 
   return (
     <div ref={top} className="grid scroll-mt-4 gap-6">
+      <CandidateHeader company={entry.company} />
       {entry.demo ? (
         <section className="grid gap-1.5 rounded-xl border border-dashed bg-muted/40 p-4 text-sm">
           <h2 className="font-medium">{t("demo.title")}</h2>
@@ -233,17 +237,29 @@ export function EntryWizard({ entry }: { entry: EntryView }) {
 
       {step === 1 ? (
         <div className="grid gap-5">
+          <div className="grid gap-2">
+            <p className="text-sm text-muted-foreground">
+              {t("intro.thanks", { channel: entry.channel })}
+            </p>
+            <h1 className={candidateHeading("text-xl")}>{entry.job.title}</h1>
+          </div>
           <JobCard entry={entry} />
-          <p>{t("intro.thanks", { channel: entry.channel })}</p>
-          <div className="grid gap-2 rounded-xl border bg-card p-4">
-            <h2 className="font-medium">{t("intro.prepare")}</h2>
-            <ul className="list-disc space-y-1 pl-5 text-sm">
-              <li>{t("intro.resume")}</li>
-              <li>{entry.requiresCv ? t("intro.cvRequired") : t("intro.cvOptional")}</li>
+          <div className="grid gap-3 rounded-xl border bg-card p-4">
+            <h2 className="font-semibold">{t("intro.prepare")}</h2>
+            <ul className="grid gap-2 text-sm">
+              {[
+                t("intro.resume"),
+                entry.requiresCv ? t("intro.cvRequired") : t("intro.cvOptional"),
+              ].map((item) => (
+                <li key={item} className="flex gap-2">
+                  <FileTextIcon className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden />
+                  {item}
+                </li>
+              ))}
             </ul>
             <p className="text-sm text-muted-foreground">{t("intro.time")}</p>
           </div>
-          <Button size="lg" className="h-11" onClick={() => go(2)}>
+          <Button size="lg" className={CANDIDATE_CTA} onClick={() => go(2)}>
             {t("intro.start")}
           </Button>
         </div>
@@ -258,7 +274,7 @@ export function EntryWizard({ entry }: { entry: EntryView }) {
             if (checkContact()) go(3);
           }}
         >
-          <h2 className="text-lg font-bold">{t("contact.title")}</h2>
+          <h2 className={candidateHeading("text-lg")}>{t("contact.title")}</h2>
           <Field id="name" label={t("contact.name")} error={errors.name} required>
             <Input
               id="name"
@@ -410,7 +426,7 @@ export function EntryWizard({ entry }: { entry: EntryView }) {
             if (checkDocuments()) go(4);
           }}
         >
-          <h2 className="text-lg font-bold">{t("documents.title")}</h2>
+          <h2 className={candidateHeading("text-lg")}>{t("documents.title")}</h2>
           <p className="text-sm text-muted-foreground">{t("documents.hint")}</p>
           <DocumentPicker
             kind="resume"
@@ -439,7 +455,7 @@ export function EntryWizard({ entry }: { entry: EntryView }) {
 
       {step === 4 ? (
         <div className="grid gap-5">
-          <h2 className="text-lg font-bold">{t("confirm.title")}</h2>
+          <h2 className={candidateHeading("text-lg")}>{t("confirm.title")}</h2>
           <Summary entry={entry} form={form} files={files} onEdit={go} />
           <section className="grid gap-2 rounded-xl border bg-card p-4" aria-labelledby="notice">
             <h3 id="notice" className="font-medium">
@@ -482,7 +498,7 @@ export function EntryWizard({ entry }: { entry: EntryView }) {
           <div className="grid gap-3">
             <Button
               size="lg"
-              className="h-11"
+              className={CANDIDATE_CTA}
               disabled={phase !== "idle" || (turnstileSiteKey !== null && !turnstileToken)}
               onClick={submit}
             >
@@ -509,26 +525,48 @@ function Steps({ current }: { current: Step }) {
   const t = useTranslations("Entry");
   const names = [t("steps.intro"), t("steps.contact"), t("steps.documents"), t("steps.confirm")];
   return (
-    <ol aria-label={t("stepsLabel")} className="grid grid-cols-4 gap-2 text-center text-xs">
-      {names.map((name, index) => (
-        <li
-          key={name}
-          aria-current={index + 1 === current ? "step" : undefined}
-          className={cn(
-            "grid gap-1.5",
-            index + 1 <= current ? "text-foreground" : "text-muted-foreground",
-          )}
-        >
-          <span
-            className={cn("h-1 rounded-full", index + 1 <= current ? "bg-primary" : "bg-muted")}
-          />
-          {name}
-        </li>
-      ))}
+    <ol aria-label={t("stepsLabel")} className="grid grid-cols-4 text-center text-xs">
+      {names.map((name, index) => {
+        const n = index + 1;
+        return (
+          <li
+            key={name}
+            aria-current={n === current ? "step" : undefined}
+            className={cn(
+              "relative grid justify-items-center gap-1.5",
+              n <= current ? "font-medium text-foreground" : "text-muted-foreground",
+            )}
+          >
+            {/* The line joining this step to the previous one. */}
+            {n > 1 ? (
+              <span
+                aria-hidden
+                className={cn(
+                  "absolute top-3.5 right-1/2 h-0.5 w-full -translate-y-1/2",
+                  n <= current ? "bg-primary" : "bg-border",
+                )}
+              />
+            ) : null}
+            <span
+              aria-hidden
+              className={cn(
+                "relative z-10 flex size-7 items-center justify-center rounded-full text-xs font-semibold tabular-nums",
+                n < current && "bg-primary text-primary-foreground",
+                n === current && "bg-primary text-primary-foreground ring-4 ring-accent",
+                n > current && "bg-card text-muted-foreground ring-1 ring-border",
+              )}
+            >
+              {n < current ? <CheckIcon className="size-4" /> : n}
+            </span>
+            {name}
+          </li>
+        );
+      })}
     </ol>
   );
 }
 
+// The job's title is the page heading above this card; the company is in the page header.
 function JobCard({ entry }: { entry: EntryView }) {
   const t = useTranslations("Entry.intro");
   return (
@@ -538,13 +576,11 @@ function JobCard({ entry }: { entry: EntryView }) {
         // eslint-disable-next-line @next/next/no-img-element
         <img src={entry.job.imageUrl} alt="" className="aspect-4/3 w-full object-cover" />
       ) : null}
-      <CardHeader>
-        <p className="text-sm text-muted-foreground">{entry.company}</p>
-        <CardTitle className="text-lg">{entry.job.title}</CardTitle>
-        {entry.job.displayTitle ? (
+      {entry.job.displayTitle ? (
+        <CardHeader>
           <CardDescription>{entry.job.displayTitle}</CardDescription>
-        ) : null}
-      </CardHeader>
+        </CardHeader>
+      ) : null}
       <CardContent>
         <dl className="grid grid-cols-[5rem_1fr] gap-x-3 gap-y-1.5 text-sm">
           {entry.job.employmentType ? (
@@ -677,7 +713,7 @@ function Question({
         {q.options.map((option) => (
           <label
             key={option}
-            className="flex min-h-10 cursor-pointer items-center gap-3 rounded-lg border px-3 text-sm has-checked:border-primary has-checked:bg-primary/5"
+            className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border bg-card px-3.5 text-sm transition-colors has-checked:border-primary has-checked:bg-accent has-checked:font-medium"
           >
             <input
               type={q.multi ? "checkbox" : "radio"}
@@ -706,7 +742,7 @@ function Nav({ onBack, nextLabel }: { onBack: () => void; nextLabel: string }) {
   const t = useTranslations("Entry");
   return (
     <div className="grid gap-3">
-      <Button type="submit" size="lg" className="h-11">
+      <Button type="submit" size="lg" className={CANDIDATE_CTA}>
         {nextLabel}
       </Button>
       <Button type="button" variant="ghost" onClick={onBack}>

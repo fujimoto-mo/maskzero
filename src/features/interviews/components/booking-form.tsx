@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { CANDIDATE_CTA } from "@/components/candidate-header";
 import { FormAlert } from "@/components/form-alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -129,14 +130,14 @@ export function BookingForm({
         ) : (
           <ul className="grid gap-3">
             {days.slice(0, shownDays).map((day) => (
-              <li key={day.date} className="grid gap-2 rounded-xl border bg-card p-3">
-                <p id={`day-${day.date}`} className="text-sm font-medium">
+              <li key={day.date} className="grid gap-2.5 rounded-xl border bg-card p-3.5">
+                <p id={`day-${day.date}`} className="text-sm font-semibold">
                   {day.label}
                 </p>
                 <div
                   role="group"
                   aria-labelledby={`day-${day.date}`}
-                  className="flex flex-wrap gap-2"
+                  className="grid grid-cols-3 gap-2 sm:grid-cols-4"
                 >
                   {day.slots.map((slot) => {
                     const rank = picks.findIndex((p) => p.startsAt === slot.startsAt);
@@ -148,15 +149,17 @@ export function BookingForm({
                         disabled={rank < 0 && picks.length >= MAX_PICKS}
                         onClick={() => toggle(slot)}
                         className={cn(
-                          "min-h-11 min-w-20 rounded-lg border px-3 text-sm tabular-nums transition-colors disabled:opacity-40",
+                          "grid min-h-12 place-content-center gap-0.5 rounded-xl border px-2 text-sm tabular-nums transition-colors disabled:opacity-40",
                           rank >= 0
-                            ? "border-primary bg-primary text-primary-foreground"
+                            ? "border-primary bg-accent font-semibold text-accent-foreground"
                             : "hover:bg-muted",
                         )}
                       >
                         {slot.time}
                         {rank >= 0 ? (
-                          <span className="block text-[10px]">{t("picked", { n: rank + 1 })}</span>
+                          <span className="mx-auto rounded-full bg-primary px-1.5 text-[10px] leading-4 font-medium text-primary-foreground">
+                            {t("picked", { n: rank + 1 })}
+                          </span>
                         ) : null}
                       </button>
                     );
@@ -180,10 +183,9 @@ export function BookingForm({
           {concerns.map((concern) => {
             const checked = chosen.includes(concern.id);
             return (
-              <div key={concern.id} className="grid gap-1">
-                <Label className="items-start font-normal">
+              <div key={concern.id} className="grid gap-1.5">
+                <Label className="min-h-12 items-center rounded-xl border px-3.5 py-2 leading-snug font-normal transition-colors has-data-[state=checked]:border-primary has-data-[state=checked]:bg-accent has-data-[state=checked]:font-medium">
                   <Checkbox
-                    className="mt-0.5"
                     checked={checked}
                     onCheckedChange={(on) =>
                       setChosen((list) =>
@@ -194,7 +196,7 @@ export function BookingForm({
                   {concern.label}
                 </Label>
                 {checked ? (
-                  <p className="ml-6 rounded-md bg-muted/60 p-2 text-sm whitespace-pre-wrap">
+                  <p className="rounded-lg bg-muted/60 p-3 text-sm whitespace-pre-wrap">
                     {concern.answer}
                   </p>
                 ) : null}
@@ -216,7 +218,12 @@ export function BookingForm({
       </div>
 
       <FormAlert error={error ?? undefined} />
-      <Button size="lg" className="h-11" disabled={busy || picks.length === 0} onClick={submit}>
+      <Button
+        size="lg"
+        className={CANDIDATE_CTA}
+        disabled={busy || picks.length === 0}
+        onClick={submit}
+      >
         {busy ? t("sending") : t("submit")}
       </Button>
     </div>

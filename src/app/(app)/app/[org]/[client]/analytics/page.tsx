@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { pillTab } from "@/components/pill-tab";
 import {
   Table,
   TableBody,
@@ -26,7 +27,6 @@ import {
 } from "@/features/analytics/domain";
 import { COHORT_LIMIT, getAnalytics } from "@/features/analytics/queries";
 import { Columns, Funnel } from "@/features/dashboard/components/charts";
-import { cn } from "@/lib/utils";
 import { requireMember } from "@/server/auth/session";
 
 export const instant = false; // reads the session per request (CLAUDE.md, "Cache Components")
@@ -79,16 +79,13 @@ export default async function AnalyticsPage({
       </div>
 
       <div className="flex flex-wrap items-end gap-3">
-        <nav aria-label={t("period")} className="flex flex-wrap gap-1">
+        <nav aria-label={t("period")} className="flex flex-wrap gap-2">
           {PERIOD_KEYS.map((key) => (
             <Link
               key={key}
               href={`${base}?period=${key}`}
               aria-current={period.key === key ? "page" : undefined}
-              className={cn(
-                "rounded-lg px-3 py-1.5 text-sm transition-colors hover:bg-muted",
-                period.key === key && "bg-muted font-medium",
-              )}
+              className={pillTab(period.key === key)}
             >
               {t(`periods.${key}`)}
             </Link>

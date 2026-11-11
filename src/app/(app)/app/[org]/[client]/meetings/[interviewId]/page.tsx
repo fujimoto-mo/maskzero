@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { pillTab } from "@/components/pill-tab";
 import {
   EvaluationTab,
   Interviewers,
@@ -11,7 +12,7 @@ import {
 } from "@/features/interviews/components/workspace-view";
 import { getWorkspace } from "@/features/interviews/workspace";
 import { formatSlot } from "@/features/scheduling/slots";
-import { cn, isUuid } from "@/lib/utils";
+import { isUuid } from "@/lib/utils";
 import { canEdit, requireMember } from "@/server/auth/session";
 import { TOOL_LABELS } from "@/server/messaging/send";
 
@@ -103,16 +104,13 @@ export default async function InterviewPage({
         ) : null}
       </div>
 
-      <nav aria-label={t("tabs")} className="flex gap-1 print:hidden">
+      <nav aria-label={t("tabs")} className="flex gap-2 print:hidden">
         {TABS.map((item) => (
           <Link
             key={item}
             href={`${base}/meetings/${interviewId}?tab=${item}`}
             aria-current={item === tab ? "page" : undefined}
-            className={cn(
-              "rounded-lg px-3 py-1.5 text-sm transition-colors hover:bg-muted",
-              item === tab && "bg-muted font-medium",
-            )}
+            className={pillTab(item === tab)}
           >
             {t(`tabNames.${item}`)}
           </Link>
