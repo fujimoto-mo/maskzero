@@ -11,9 +11,16 @@ function createDb() {
     );
   }
   const local = /@(localhost|127\.0\.0\.1)[:/]/.test(url);
-  // prepare: false is required by Supabase's transaction-mode pooler (Supavisor). Hosted
-  // connections are encrypted; the local Docker database has no TLS.
-  const client = postgres(url, { prepare: false, max: 5, ssl: local ? false : "require" });
+  // prepare: false is required by Supabase's transaction-mode pooler (Supavisor). So is
+  // max_pipeline: 1: a query pipelined onto a connection that is still describing another one
+  // never gets its reply through the pooler, and parallel queries (Promise.all) hang for good.
+  // Hosted connections are encrypted; the local Docker database has no TLS.
+  const client = postgres(url, {
+    prepare: false,
+    max_pipeline: 1,
+    max: 5,
+    ssl: local ? false : "require",
+  });
   return drizzle(client, { schema });
 }
 

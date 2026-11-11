@@ -217,7 +217,7 @@ Code status as of 2026-11-03: work package 1 is built and the tooling for 3 is i
 
 As of 2026-11-04 everything up to Phase 5's text interviewer is built and passes locally, including the calendar, meeting, Gmail and meeting-bot integrations the sales deck describes. What stands between the code and the first pilot:
 
-1. Hosted infrastructure: the Tokyo Supabase project with every migration (`pnpm db:push`), Vercel, Inngest Cloud, the Resend domain with SPF, DKIM and DMARC, Sentry and Turnstile keys (see Phase 0).
+1. Hosted infrastructure: the Tokyo Supabase project has every migration as of 2026-11-11, and the Playwright flow passes against it from a local app; still to do are its dashboard auth settings, Vercel (functions in the Tokyo region, next to the database), Inngest Cloud, the Resend domain with SPF, DKIM and DMARC, Sentry and Turnstile keys (see Phase 0).
 2. The first live eval run (`pnpm eval`, or the "AI evals" workflow with `ANTHROPIC_API_KEY`), then prompt changes until the targets hold.
 3. The Playwright flow on staging, and a walkthrough of `/demo` there.
 4. Legal review of the privacy policy and terms (Phase 1 · 1), then a pilot company.
