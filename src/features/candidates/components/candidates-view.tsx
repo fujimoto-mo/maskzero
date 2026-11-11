@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { pillTab } from "@/components/pill-tab";
 import {
   Table,
   TableBody,
@@ -18,7 +19,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { VerdictBadge } from "@/features/screening/components/verdict-badge";
-import { cn } from "@/lib/utils";
 import type { CandidateRow } from "../queries";
 import { STAGE_GROUPS, type StageGroup } from "../stages";
 import { AddCandidateDialog } from "./add-candidate-dialog";
@@ -123,16 +123,13 @@ export function CandidatesView({
         </form>
       </div>
 
-      <nav aria-label={t("title")} className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
+      <nav aria-label={t("title")} className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
         {STAGE_GROUPS.map((group) => (
           <Link
             key={group}
             href={href({ group, app: null })}
             aria-current={group === state.group ? "page" : undefined}
-            className={cn(
-              "shrink-0 rounded-lg px-3 py-1.5 text-sm transition-colors hover:bg-muted",
-              group === state.group && "bg-muted font-medium",
-            )}
+            className={pillTab(group === state.group)}
           >
             {t(`groups.${group}`)}
           </Link>

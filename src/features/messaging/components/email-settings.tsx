@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
+import { pillTab } from "@/components/pill-tab";
 import {
   ANCHORS,
   type Anchor,
@@ -131,16 +131,13 @@ export function EmailSettings({
           </div>
           <p className="text-xs text-muted-foreground">{t("quietHours")}</p>
           {agency ? (
-            <nav aria-label={t("scopeLabel")} className="flex flex-wrap gap-1">
+            <nav aria-label={t("scopeLabel")} className="flex flex-wrap gap-2">
               {(["org", "client"] as const).map((item) => (
                 <Link
                   key={item}
                   href={item === "org" ? base : `${base}&scope=client`}
                   aria-current={item === scope ? "page" : undefined}
-                  className={cn(
-                    "rounded-lg px-3 py-1.5 text-sm transition-colors hover:bg-muted",
-                    item === scope && "bg-muted font-medium",
-                  )}
+                  className={pillTab(item === scope)}
                 >
                   {item === "org" ? t("scopeOrg") : t("scopeClient", { client: agency.clientName })}
                 </Link>

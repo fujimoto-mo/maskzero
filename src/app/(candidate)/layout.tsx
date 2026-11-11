@@ -21,7 +21,7 @@ export default async function CandidateLayout({ children }: { children: ReactNod
         "AiInterview",
       )}
     >
-      <div className="flex min-h-svh flex-col bg-muted/40">
+      <div className="flex min-h-svh flex-col bg-canvas">
         <main className="mx-auto w-full max-w-xl flex-1 px-4 py-6 sm:py-10">{children}</main>
         <footer className="flex items-center justify-center gap-1.5 pb-8 text-xs text-muted-foreground">
           <Wordmark className="text-sm" />

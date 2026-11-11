@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { pillTab } from "@/components/pill-tab";
 import {
   Dialog,
   DialogClose,
@@ -26,7 +27,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { changeStageAction } from "@/features/candidates/actions";
 import { formatSlot } from "@/features/scheduling/slots";
-import { cn } from "@/lib/utils";
 import {
   bookingLinkAction,
   confirmRequestAction,
@@ -59,16 +59,13 @@ export function InterviewsView({
   const t = useTranslations("Interviews");
   return (
     <div className="grid gap-4">
-      <nav aria-label={t("title")} className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
+      <nav aria-label={t("title")} className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
         {INTERVIEW_TABS.map((item) => (
           <Link
             key={item}
             href={`${base}/interviews?tab=${item}`}
             aria-current={item === tab ? "page" : undefined}
-            className={cn(
-              "shrink-0 rounded-lg px-3 py-1.5 text-sm transition-colors hover:bg-muted",
-              item === tab && "bg-muted font-medium",
-            )}
+            className={pillTab(item === tab)}
           >
             {t(`tabs.${item}`)}
           </Link>

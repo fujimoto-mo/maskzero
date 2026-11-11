@@ -80,14 +80,14 @@ export function NotificationsMenu({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
-          className="relative"
+          className="relative size-9 rounded-full border-transparent bg-card ring-1 ring-foreground/[0.07]"
           aria-label={unread > 0 ? t("labelUnread", { count: unread }) : t("label")}
         >
           <BellIcon aria-hidden />
           {unread > 0 ? (
-            <span className="absolute top-1 right-1 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-white tabular-nums">
+            <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-white tabular-nums">
               {unread > 9 ? "9+" : unread}
             </span>
           ) : null}

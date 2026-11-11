@@ -1,6 +1,6 @@
 "use client";
 
-import { SlidersHorizontalIcon } from "lucide-react";
+import { FileTextIcon, FileWarningIcon, Loader2Icon, SlidersHorizontalIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { pillTab } from "@/components/pill-tab";
 import {
   Table,
   TableBody,
@@ -23,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { confirmRejectionsAction } from "../actions";
 import type { DocumentState, ScreeningFilter, ScreeningRow } from "../queries";
 import { SCREENING_FILTERS } from "../screening-filters";
+import { ScoreRing } from "./score-ring";
 import { VerdictBadge } from "./verdict-badge";
 
 export type SerializedRow = Omit<ScreeningRow, "appliedAt"> & { appliedAt: string };
@@ -106,44 +108,43 @@ export function ScreeningView({
         </Button>
       </div>
 
-      <nav aria-label={t("title")} className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
-        {SCREENING_FILTERS.map((f) => (
-          <Link
-            key={f}
-            href={href({ filter: f, app: null })}
-            aria-current={f === filter ? "page" : undefined}
-            className={cn(
-              "inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-colors hover:bg-muted",
-              f === filter && "bg-muted font-medium",
-            )}
-          >
-            {t(`filters.${f}`)}
-            <span className="text-xs text-muted-foreground tabular-nums">{counts[f]}</span>
-          </Link>
-        ))}
-      </nav>
+      <Card className="gap-0 py-0">
+        <div className="grid gap-3 border-b px-4 py-4">
+          <nav aria-label={t("title")} className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5">
+            {SCREENING_FILTERS.map((f) => (
+              <Link
+                key={f}
+                href={href({ filter: f, app: null })}
+                aria-current={f === filter ? "page" : undefined}
+                className={pillTab(f === filter)}
+              >
+                {t(`filters.${f}`)}
+                <span className="text-xs tabular-nums opacity-70">{counts[f]}</span>
+              </Link>
+            ))}
+          </nav>
 
-      {canEdit && confirmable.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/40 px-3 py-2 text-sm">
-          <span>{t("confirm.selected", { count: selected.length })}</span>
-          <Button
-            size="sm"
-            variant="destructive"
-            disabled={pending || selected.length === 0}
-            onClick={confirm}
-          >
-            {t("confirm.button")}
-          </Button>
+          {canEdit && confirmable.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-3 rounded-xl bg-destructive/5 px-3 py-2 text-sm">
+              <span>{t("confirm.selected", { count: selected.length })}</span>
+              <Button
+                size="sm"
+                variant="destructive"
+                disabled={pending || selected.length === 0}
+                onClick={confirm}
+              >
+                {t("confirm.button")}
+              </Button>
+            </div>
+          ) : null}
         </div>
-      ) : null}
 
-      <Card className="py-0">
         {rows.length === 0 ? (
           <p className="p-6 text-sm text-muted-foreground">{t("empty")}</p>
         ) : (
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="hover:bg-transparent">
                 {canEdit && confirmable.length > 0 ? (
                   <TableHead className="w-10 pl-4">
                     <Checkbox
@@ -156,7 +157,7 @@ export function ScreeningView({
                 <TableHead className="pl-4">{t("columns.candidate")}</TableHead>
                 <TableHead>{t("columns.applied")}</TableHead>
                 <TableHead>{t("columns.basic")}</TableHead>
-                <TableHead className="text-right">{t("columns.score")}</TableHead>
+                <TableHead>{t("columns.score")}</TableHead>
                 <TableHead>{t("columns.verdict")}</TableHead>
                 <TableHead className="pr-4">{t("columns.documents")}</TableHead>
               </TableRow>
@@ -190,7 +191,7 @@ export function ScreeningView({
                     <Link
                       href={href({ app: row.applicationId })}
                       scroll={false}
-                      className="font-medium underline-offset-4 hover:underline"
+                      className="font-semibold underline-offset-4 hover:underline"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {row.candidateName}
@@ -199,26 +200,45 @@ export function ScreeningView({
                       <p className="text-xs text-muted-foreground">{row.channel}</p>
                     ) : null}
                   </TableCell>
-                  <TableCell className="text-sm">
+                  <TableCell className="font-medium tabular-nums">
                     {dateFormat.format(new Date(row.appliedAt))}
                   </TableCell>
-                  <TableCell className="text-sm tabular-nums">
-                    {row.basicTotal > 0 ? `${row.basicMet}/${row.basicTotal}` : "—"}
+                  <TableCell>
+                    {row.basicTotal > 0 ? (
+                      <span
+                        className={cn(
+                          "inline-flex h-6 items-center rounded-full px-2.5 text-xs font-medium tabular-nums",
+                          row.basicMet === row.basicTotal
+                            ? "bg-accent text-accent-foreground"
+                            : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {row.basicMet}/{row.basicTotal}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">{row.score ?? "—"}</TableCell>
+                  <TableCell>
+                    <ScoreRing score={row.score} />
+                  </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap items-center gap-1">
                       <VerdictBadge verdict={row.verdict} />
                       {row.stage !== "applied" &&
                       row.stage !== "screening" &&
                       row.outcome === "active" ? (
-                        <Badge variant="secondary">{t("movedOn")}</Badge>
+                        <Badge variant="secondary" className="h-6 px-2.5">
+                          {t("movedOn")}
+                        </Badge>
                       ) : null}
                     </div>
                   </TableCell>
-                  <TableCell className="pr-4 text-xs">
-                    <DocState label={t("docs.resume")} state={row.resume} />
-                    <DocState label={t("docs.cv")} state={row.cv} />
+                  <TableCell className="pr-4">
+                    <div className="flex flex-wrap gap-1.5">
+                      <DocState label={t("docs.resume")} state={row.resume} />
+                      <DocState label={t("docs.cv")} state={row.cv} />
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -233,13 +253,25 @@ export function ScreeningView({
 function DocState({ label, state }: { label: string; state: DocumentState }) {
   const t = useTranslations("Screening.docs");
   return (
-    <p
+    <span
+      title={t(state)}
       className={cn(
-        state === "failed" && "text-destructive",
-        state === "none" && "text-muted-foreground",
+        "inline-flex h-6 items-center gap-1 rounded-full px-2 text-xs [&_svg]:size-3.5",
+        state === "read" && "bg-accent text-accent-foreground",
+        state === "reading" && "bg-muted text-foreground",
+        state === "failed" && "bg-destructive/10 text-destructive",
+        state === "none" && "text-muted-foreground ring-1 ring-foreground/10 ring-inset",
       )}
     >
-      {label}：{t(state)}
-    </p>
+      {state === "reading" ? (
+        <Loader2Icon className="animate-spin" aria-hidden />
+      ) : state === "failed" ? (
+        <FileWarningIcon aria-hidden />
+      ) : (
+        <FileTextIcon aria-hidden />
+      )}
+      {label}
+      <span className="sr-only">：{t(state)}</span>
+    </span>
   );
 }
