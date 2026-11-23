@@ -2,6 +2,7 @@
 // the candidate's conversation, asking for a person, the deadline, and scoring. Runs the
 // candidate-side code on the admin connection like the personal-page API does, with AI_FAKE=1.
 import { randomUUID } from "node:crypto";
+import { eq } from "drizzle-orm";
 import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
@@ -17,6 +18,8 @@ import { scoreSession } from "@/features/ai-interview/scoring";
 import { inviteAfterPass } from "@/features/ai-interview/server";
 import { closeOpenScheduling } from "@/features/interviews/server";
 import { getDb } from "@/server/db/client";
+import { withRls } from "@/server/db/rls";
+import * as schema from "@/server/db/schema";
 
 // Never the app's DATABASE_URL, which points at the hosted project (see rls.test.ts).
 const testDatabaseUrl =
@@ -27,6 +30,8 @@ process.env.AI_FAKE = "1";
 const admin = postgres(testDatabaseUrl, { max: 1, onnotice: () => {} });
 
 const run = randomUUID().slice(0, 8);
+// A recruiter, for what staff do as themselves (through withRls).
+const recruiter = { userId: randomUUID(), email: `ai-${run}@example.com` };
 let orgId = "";
 let clientId = "";
 let jobId = "";
@@ -70,10 +75,15 @@ beforeAll(async () => {
   ];
   await admin`insert into ai_interview_configs (job_id, org_id, client_id, enabled, questions)
               values (${jobId}, ${orgId}, ${clientId}, true, ${admin.json(questions)})`;
+  await admin`insert into auth.users (id, email, aud, role)
+              values (${recruiter.userId}, ${recruiter.email}, 'authenticated', 'authenticated')`;
+  await admin`insert into memberships (org_id, user_id, role, client_ids)
+              values (${orgId}, ${recruiter.userId}, 'recruiter', ${[clientId]})`;
 });
 
 afterAll(async () => {
   if (orgId) await admin`delete from organizations where id = ${orgId}`;
+  await admin`delete from auth.users where id = ${recruiter.userId}`;
   await admin.end();
   await getDb().$client.end();
 });
@@ -208,6 +218,31 @@ describe("AI interviewer", () => {
       select status from ai_interview_sessions where id = ${scope.sessionId}`;
     expect(session!.status).toBe("aborted");
     expect(await startAiInterview(scope, new Date())).toEqual({ ok: false, error: "notOpen" });
+  });
+
+  it("lets staff end it as themselves when they reject, and change nothing else", async () => {
+    // Rejecting by hand runs closeOpenScheduling as the recruiter; it used to fail on the grant.
+    const scope = await invited();
+    await withRls(recruiter, (tx) => closeOpenScheduling(tx, scope.applicationId));
+    const [session] = await admin<{ status: string }[]>`
+      select status from ai_interview_sessions where id = ${scope.sessionId}`;
+    expect(session!.status).toBe("aborted");
+
+    const other = await invited();
+    const sessions = schema.aiInterviewSessions;
+    await expect(
+      withRls(recruiter, (tx) =>
+        tx.update(sessions).set({ status: "completed" }).where(eq(sessions.id, other.sessionId)),
+      ),
+    ).rejects.toThrow();
+    await expect(
+      withRls(recruiter, (tx) =>
+        tx.update(sessions).set({ total: "5" }).where(eq(sessions.id, other.sessionId)),
+      ),
+    ).rejects.toThrow();
+    const [untouched] = await admin<{ status: string }[]>`
+      select status from ai_interview_sessions where id = ${other.sessionId}`;
+    expect(untouched!.status).toBe("invited");
   });
 
   it("books with a person when the company doesn't have the feature", async () => {
